@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 	}
 
 	else if(strcmp(argv[1], "mem") == 0) {
-		bench_mem(argc, argv);
+		mem.run(argc, argv);
 	}
 
 	else if(strcmp(argv[1], "io") == 0) {

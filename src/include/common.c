@@ -27,5 +27,4 @@ inline unsigned long long rdclock(void) {
 	return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
  }
 
-int bench_mem(int argc, char **argv){}
 int bench_io(int argc, char **argv){}
