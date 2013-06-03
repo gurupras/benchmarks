@@ -5,7 +5,7 @@
  *      Author: guru
  */
 
-#include "common.h"
+#include <include/common.h>
 
 static void usage() {
 	printf("bench <benchmark> <options> \n"
