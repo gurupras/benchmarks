@@ -1,7 +1,8 @@
 Debug
 *.o
-*
+.*
 
+!Makefile
 !src
 !*.c
 !*.h
