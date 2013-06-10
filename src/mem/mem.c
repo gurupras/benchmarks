@@ -7,7 +7,7 @@
 
 #include <include/common.h>
 
-int *array;
+static char **array;
 
 static void usage() {
 	printf("bench cpu <option>\n"
@@ -73,25 +73,31 @@ static int bench_mem(int argc, char **argv) {
 		panic();
 	}
 
-	array = malloc(sizeof(DCACHE_SIZE) * 2 + 1);
+	array = malloc(DCACHE_SIZE);
+	ull index;
+	for(index = 0; index < 100; index++) {
+		array[index] = malloc(DCACHE_SIZE);
+	}
 
 	signal(SIGALRM, alarm_handler);
 
 	setitimer(ITIMER_REAL, &timeout_timer, 0);
 	start_time = rdclock();
 
-	ull index = 0;
+
+	index = 0;
+	printf("Starting memory benchmark\n");
 	while(1) {
-		memcpy(&array[index], &array[index + DCACHE_SIZE], sizeof(int));
+		memcpy(&array[index], &array[index + 2], DCACHE_SIZE);
 
 		if(current_number == end_number)
 			break;
 
-		if(index == DCACHE_SIZE)
-			index = 0;
-
 		current_number++;
 		index++;
+
+		if(index == 51)
+			index = 0;
 	}
 
 //	Manual termination

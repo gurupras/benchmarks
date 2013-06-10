@@ -8,7 +8,7 @@
 #include "common.h"
 
 ull start_time, end_time, finish_time = 0;
-ull end_number = ~0, current_number = 1, finish_number = -1;
+ull end_number = ~0, current_number = 0, finish_number = -1;
 
 struct itimerval timeout_timer;
 
