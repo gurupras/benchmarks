@@ -1,6 +1,7 @@
 Debug
 *.o
 .*
+bench
 
 !Makefile
 !src
