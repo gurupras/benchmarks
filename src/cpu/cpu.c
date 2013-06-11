@@ -108,8 +108,7 @@ static int bench_cpu(int argc, char **argv) {
 
 	while(1) {
 		is_prime(current_number);
-		for(noop_index = 0; noop_index < ICACHE_SIZE; noop_index++)
-			asm("nop");
+		ENSURE_ICACHE_MISS;
 		if(current_number == end_number)
 			break;
 
