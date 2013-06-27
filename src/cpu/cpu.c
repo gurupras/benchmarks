@@ -108,7 +108,6 @@ static int bench_cpu(int argc, char **argv) {
 
 	while(1) {
 		is_prime(current_number);
-		ENSURE_ICACHE_MISS;
 		if(current_number == end_number)
 			break;
 
