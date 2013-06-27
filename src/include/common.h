@@ -17,8 +17,6 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "autoconf.h"
-
 typedef unsigned long long ull;
 
 extern ull start_time, end_time, finish_time;
