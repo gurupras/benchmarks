@@ -17,6 +17,14 @@
 #include <ctype.h>
 #include <string.h>
 
+#define append(list,element) \
+{ \
+	int index = 0; \
+	while(list[index] != 0) \
+		index++; \
+	list[index] = element; \
+}
+
 typedef unsigned long long ull;
 
 extern ull start_time, end_time, finish_time;
