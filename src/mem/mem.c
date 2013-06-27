@@ -9,6 +9,8 @@
 
 static char **array;
 
+#define DCACHE_SIZE 64 * 1024
+
 static void usage() {
 	printf("bench cpu <option>\n"
 			"Benchmarks the CPU by running a primality test until conditions specified have been satisfied\n"
