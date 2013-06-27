@@ -58,7 +58,7 @@ static void alarm_handler(int signal) {
 }
 
 
-
+static ull *primes;
 
 static inline int is_prime(int number) {
 
@@ -84,6 +84,7 @@ static inline int is_prime(int number) {
         }
         divisor += 2;
     }
+    append(primes, number);
     return 1;
 }
 
@@ -100,6 +101,16 @@ static int bench_cpu(int argc, char **argv) {
 		panic();
 	}
 
+	ull malloc_size;
+	if(end_number != ~0)
+		malloc_size = sizeof(ull) * (end_number / 2);
+	else
+		malloc_size = sizeof(ull) * 10 * 1024;	//Allocate 10K
+
+	primes = malloc(malloc_size);
+	bzero(primes, malloc_size);
+
+	append(primes, 2);
 	signal(SIGALRM, alarm_handler);
 
 
