@@ -31,6 +31,9 @@ static void usage(char *error) {
 			"If unset, the program terminates as there is no break condition\n"
 			"If both are set, the program terminates upon satisfying either condition\n"
 			, error);
+
+	if(error != " ")
+		exit(-1);
 }
 
 static int parse_opts(int argc, char **argv) {

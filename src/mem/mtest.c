@@ -60,6 +60,8 @@ static void usage(char *error) {
 			"    -w <n>    : Number of writers\n"
 			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
 			, error);
+	if(error)
+		exit(-1);
 }
 
 
