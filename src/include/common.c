@@ -16,7 +16,7 @@ char *error_msg;
 
 
 inline void panic() {
-	printf("%s\n", error_msg);
+	fprintf(stderr, "%s\n", error_msg);
 	exit(-1);
 }
 
