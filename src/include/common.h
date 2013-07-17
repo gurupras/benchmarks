@@ -25,6 +25,9 @@
 	list[index] = element; \
 }
 
+#define for_each_entry(entry, list) \
+	for(entry = list; entry != NULL; entry++)
+
 typedef unsigned long long ull;
 
 extern ull start_time, end_time, finish_time;
@@ -35,14 +38,14 @@ extern struct itimerval timeout_timer;
 extern char *error_msg;
 
 struct benchmark {
-	void (*usage) (int error);
+	void (*usage) (char *error);
 	int  (*parse_opts) (int argc, char **argv);
 	void (*alarm_handler) (int signal);
 	int  (*gracefully_exit) (void);
 	int  (*run) (int argc, char **argv);
 };
 
-extern struct benchmark cpu, mem, io;
+extern struct benchmark cpu, mem;
 
 
 inline void panic();
