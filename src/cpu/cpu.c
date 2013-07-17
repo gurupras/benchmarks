@@ -22,7 +22,7 @@ static void usage(char *error) {
 			"Benchmarks the CPU by running a primality test until conditions specified have been satisfied\n"
 			"\nOPTIONS:\n"
 			"    -h        : Print this help message\n"
-			"    -t <n>    : Specifies a time limit (in seconds)\n"
+			"    -t <n>    : Specifies a time limit (in micro seconds)\n"
 			"    -n <n>    : Specifies a number limit\n"
 			"    -s <n>    : Add an idle duration for every 1000 numbers tested\n"
 			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
@@ -60,7 +60,7 @@ static int parse_opts(int argc, char **argv) {
 			end_number = strtoull(optarg, 0, 0);
 			break;
 		case 's' :
-			sleep_interval = atoi(optarg);
+			sleep_interval = atol(optarg);
 			break;
 		case 'r' :
 			repeat_count = atoi(optarg);
@@ -186,7 +186,7 @@ static inline int __bench_cpu() {
 		is_prime(current_number);
 
 		if(current_number % 1000 == 0 && current_number > 0)
-			sleep(sleep_interval);
+			usleep(sleep_interval);
 
 		if(current_number == end_number)
 			break;
