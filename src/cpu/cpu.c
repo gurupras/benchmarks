@@ -54,7 +54,7 @@ static int parse_opts(int argc, char **argv) {
 			timeout_timer.it_value.tv_usec     = usec;
 			break;
 		case 'n' :
-			end_number = (ull) atol(optarg);
+			end_number = strtoull(optarg, 0, 0);
 			break;
 		case 's' :
 			sleep_interval = atoi(optarg);
