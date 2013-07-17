@@ -15,7 +15,7 @@ static ull primes_size;
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
 
-	if(error != "")
+	if(error != " ")
 		file = stderr;
 	fprintf(file, "%s\n"
 			"bench cpu <option>\n"
@@ -63,14 +63,14 @@ static int parse_opts(int argc, char **argv) {
 			repeat_count = atoi(optarg);
 			break;
 		case 'h' :
-			usage("");
+			usage(" ");
 			break;
 		}
 	}
 
 	if(end_time == 0 && end_number == ~0) {
 		usage("No options specified\nTerminating program due to infinite loop!\n");
-		panic("");
+		panic(" ");
 	}
 
 	return 0;

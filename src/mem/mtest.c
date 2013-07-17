@@ -44,24 +44,37 @@ static void page_error(int);			/* Report a heap
 
 #define page_val(page) (* (int *) (heap + pagesize * (page)))
 
-static void usage(char *error)
-{
+static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
 
-	if(error != "")
+	if(error != " ")
 		file = stderr;
 	fprintf(file, "%s\n"
 			"bench mem <option>\n"
-			"Benchmarks the memory by running memtest until\n"
-			"    1) Time elapses\n"
-			"    2) The test completes\n"
+			"Benchmarks the memory by running memtest until conditions specified have been satisfied\n"
 			"\nOPTIONS:\n"
-			"    -h    : Print this help message\n"
-			"    -t    : Specifies a time limit (in seconds)\n"
-			"    -n    : Specifies a number limit\n"
+			"    -h        : Print this help message\n"
+			"    -t <n>    : Specifies a time limit (in seconds)\n"
+			"    -s <n>    : Add an idle duration for every 1000 numbers tested\n"
+			"    -d <n>    : Number of readers\n"
+			"    -w <n>    : Number of writers\n"
+			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
 			, error);
-
 }
+
+
+static int gracefully_exit() {
+		printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
+		exit(0);
+}
+
+static void alarm_handler(int signal) {
+	finish_time = rdclock();
+	gracefully_exit();
+}
+
+
+
 
 int parse_opts(int argc, char *argv[])
 {
@@ -79,8 +92,7 @@ int parse_opts(int argc, char *argv[])
 			do_fork = 1;
 			break;
 		case 'h':
-			usage(0);
-			break;
+			usage(" ");
 		case 'm':
 			memory = strtoul(optarg, 0, 0);
 			break;
@@ -91,27 +103,46 @@ int parse_opts(int argc, char *argv[])
 			wprocesses = strtoul(optarg, 0, 0);
 			break;
 		case 't' :
-			end_time = strtoull(optarg, 0, 0);
+			end_time = (ull) (atof(optarg) * 1e9);
+			time_t sec 	= end_time / 1e9;
+			time_t usec = ( (end_time - (sec * 1e9)) / 1e3);
+			timeout_timer.it_interval.tv_usec = 0;
+			timeout_timer.it_interval.tv_sec  = 0;
+			timeout_timer.it_value.tv_sec     = sec;
+			timeout_timer.it_value.tv_usec     = usec;
+			break;
 		default:
 			usage("unknown error");
 		}
 	}
-	
+}
+
+static int benchmark(int argc, char **argv) {
+	parse_opts(argc, argv);
+
+	int i;
+
 	fprintf (stderr, "Starting test run with %d megabyte heap.\n", memory);
-	
+
 	setup_memory();
-	
+
+	signal(SIGALRM, alarm_handler);
+
+
+	setitimer(ITIMER_REAL, &timeout_timer, 0);
+	start_time = rdclock();
+
 	for (i=0; i<rprocesses; i++)
 		fork_child(i, 0);
 	for (; i<rprocesses+wprocesses; i++)
 		fork_child(i, 1);
-	
+
 	fprintf (stderr, "%d child processes started.\n", i);
-	
+
 	for (;;) {
 		pid_t pid;
 		int status;
-		
+
 		/* Catch child error statuses and report them. */
 		pid = wait3(&status, 0, 0);
 		if (pid < 0)	/* No more children? */
@@ -132,7 +163,6 @@ int parse_opts(int argc, char *argv[])
 		}
 	}
 }
-
 
 static void setup_memory(void)
 {
@@ -254,6 +284,9 @@ static void page_error(int page)
 }
 
 struct benchmark mem = {
-	.parse_opts = parse_opts,
-	.usage		= usage,
+	.usage				= usage,
+	.parse_opts			= parse_opts,
+	.alarm_handler		= alarm_handler,
+	.gracefully_exit	= gracefully_exit,
+	.run				= benchmark,
 };
