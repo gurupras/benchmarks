@@ -1,18 +1,41 @@
-CC=arm-none-linux-gnueabi-gcc
 
-all : arm
+MAKEFLAGS = --no-builtin-rules
+# We don't use any suffix rules
+.SUFFIXES :
 
-FILES = src/main.c src/cpu/cpu.c src/mem/mem.c src/include/common.c
+LIBS     = -L. -lrt
 
-arm :
+CC_OPTS = $(CFLAGS) $($*_CC_OPTS)
+CC =gcc
+
+all : host
+
+host : CROSS=
+arm  : CROSS=arm-none-linux-gnueabi-
+host arm : built-in.o cpu.o mem.o common.o bench.o
+	$(addprefix $(CROSS), $(CC)) $(CFLAGS) -static -o bench built-in.o $(LIBS)
+	@rm -rf *.o *.a
+
+built-in.o : cpu.o mem.o common.o bench.o
+	$(addprefix $(CROSS), ld) -r $^ -o $@
 	
-	@echo "/* Auto generated file. DO NOT EDIT */"   > src/include/autoconf.h
-	$(CC) $(FILES) -Isrc -lrt -static -o bench
+bench.o :
+	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/main.c -o $@
 
-host :
-	@echo "/* Auto generated file. DO NOT EDIT */" >src/include/autoconf.h
-	gcc $(FILES) -Isrc -lrt -static -g -o bench
-	
+cpu.o : 
+	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/cpu/cpu.c -o $@
+
+common.o :
+	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c src/include/common.c -o $@
+
+mem.o : misc_lib.o mtest.o
+	$(addprefix $(CROSS), ld) -r $^ -o $@
+
+mtest.o :
+	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/mem/mtest.c -o $@
+
+misc_lib.o : 
+	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c src/mem/misc_lib.c -o $@
+
 clean :
-	rm -rf *.o
-	rm bench
+	rm -rf *.o *.a bench
