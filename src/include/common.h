@@ -35,7 +35,7 @@ extern struct itimerval timeout_timer;
 extern char *error_msg;
 
 struct benchmark {
-	void (*usage) (void);
+	void (*usage) (int error);
 	int  (*parse_opts) (int argc, char **argv);
 	void (*alarm_handler) (int signal);
 	int  (*gracefully_exit) (void);

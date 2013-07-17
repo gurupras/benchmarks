@@ -7,9 +7,14 @@
 
 #include <include/common.h>
 
-static void usage() {
-	printf("bench cpu <option>\n"
+static void usage(int error) {
+	int file = stdout;
+
+	if(error != 0)
+		file = stderr;
+	fprintf(file, "bench cpu <option>\n"
 			"Benchmarks the CPU by running a primality test until conditions specified have been satisfied\n"
+			"\nOPTIONS:\n"
 			"    -h    : Print this help message\n"
 			"    -t    : Specifies a time limit (in seconds)\n"
 			"    -n    : Specifies a number limit\n"
@@ -34,8 +39,11 @@ static int parse_opts(int argc, char **argv) {
 		case 'n' :
 			end_number = (ull) atol(optarg);
 			break;
+		case 'h' :
+			usage(0);
+			break;
 		default :
-			usage();
+			usage(opt);
 			break;
 		}
 	}
