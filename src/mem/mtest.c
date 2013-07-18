@@ -131,7 +131,7 @@ static int benchmark(int argc, char **argv) {
 	signal(SIGALRM, alarm_handler);
 
 
-	setitimer(ITIMER_REAL, &timeout_timer, 0);
+	setitimer(ITIMER_PROF, &timeout_timer, 0);
 	start_time = rdclock();
 
 	for (i=0; i<rprocesses; i++)
