@@ -84,7 +84,7 @@ int parse_opts(int argc, char *argv[])
 
 	progname = argv[0];
 	
-	while (c = getopt(argc, argv, "fhm:r:w:t:"), c != EOF) {
+	while (c = getopt(argc, argv, "fhm:r:w:t:d:s:"), c != EOF) {
 		switch (c) {
 		case ':':
 			usage("missing argument");
@@ -98,7 +98,7 @@ int parse_opts(int argc, char *argv[])
 		case 'm':
 			memory = strtoul(optarg, 0, 0);
 			break;
-		case 'r':
+		case 'd':
 			rprocesses = strtoul(optarg, 0, 0);
 			break;
 		case 'w':
