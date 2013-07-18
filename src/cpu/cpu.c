@@ -179,7 +179,7 @@ static inline int __bench_cpu() {
 	signal(SIGALRM, alarm_handler);
 
 
-	setitimer(ITIMER_PROF, &timeout_timer, 0);
+	setitimer(ITIMER_REAL, &timeout_timer, 0);
 	start_time = rdclock();
 
 	while(1) {
