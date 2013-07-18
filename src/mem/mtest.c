@@ -55,10 +55,10 @@ static void usage(char *error) {
 			"\nOPTIONS:\n"
 			"    -h        : Print this help message\n"
 			"    -t <n>    : Specifies a time limit (in seconds)\n"
-			"    -s <n>    : Add an idle duration for every 1000 numbers tested\n"
+			"    -m <n>    : Specifies the memory heap size (in Megabytes)\n"
 			"    -d <n>    : Number of readers\n"
 			"    -w <n>    : Number of writers\n"
-			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
+//			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
 			, error);
 	if(error)
 		exit(-1);
@@ -90,9 +90,6 @@ int parse_opts(int argc, char *argv[])
 			usage("missing argument");
 		case '?':
 			usage("unrecognised argument");
-		case 'f':
-			do_fork = 1;
-			break;
 		case 'h':
 			usage(" ");
 		case 'm':
