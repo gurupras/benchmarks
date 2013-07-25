@@ -17,16 +17,31 @@
 #include <ctype.h>
 #include <string.h>
 
+char **__pos;
+
+#define init_list(list, size) \
+{ \
+	int i; \
+	list = malloc(sizeof(void *) * size); \
+	for(i = 0; i < size; i++) \
+		list[i] = NULL; \
+}
+
 #define append(list,element) \
 { \
 	int index = 0; \
-	while(list[index] != 0) \
+	while(list[index] != NULL) \
 		index++; \
-	list[index] = element; \
+	typeof(element) *ptr = malloc(sizeof(element)); \
+	*ptr = element; \
+	list[index] = ptr; \
 }
 
 #define for_each_entry(entry, list) \
-	for(entry = list; entry != NULL; entry++)
+	for( \
+		__pos = (char **)list; \
+		__pos != NULL; \
+		entry = *((typeof(entry) *)__pos[0]), __pos ++)
 
 typedef unsigned long long ull;
 
@@ -45,7 +60,7 @@ struct benchmark {
 	int  (*run) (int argc, char **argv);
 };
 
-extern struct benchmark cpu, mem;
+extern struct benchmark cpu, mem, io;
 
 
 inline void panic();

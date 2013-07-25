@@ -19,10 +19,15 @@
 #include "misc_lib.h"
 #include <include/common.h>
 
+#include <pthread.h>
+
 int memory	= 8;	/* Default --- use 8 MB of heap */
 int rprocesses	= 8;	/* Number of reader processes */
 int wprocesses	= 1;	/* Number of writer processes */
 int do_fork	= 0;	/* Enable random fork/die if true */
+
+int **pids;			/* Track child PIDs */
+pthread_mutex_t mutex;	/* Mutex semaphore */
 
 int pagesize;
 
@@ -72,6 +77,20 @@ static int gracefully_exit() {
 
 static void alarm_handler(int signal) {
 	finish_time = rdclock();
+	int pid;
+	printf("Killing child processes\n");
+//	for_each_entry(pid, pids) {
+//		printf("Killing child %d\n", pid);
+//		kill(pid, SIGALRM);
+//	}
+
+	int **ptr = pids;
+
+	int i = 0;
+	while(ptr[i] != NULL) {
+		printf("ptr[%d] =%d\n", i, ptr[i][0]);
+		i++;
+	}
 	gracefully_exit();
 }
 
@@ -118,6 +137,10 @@ int parse_opts(int argc, char *argv[])
 
 static int benchmark(int argc, char **argv) {
 	parse_opts(argc, argv);
+
+	printf("size :%d\n", rprocesses + wprocesses);
+	init_list(pids, (rprocesses + wprocesses))
+	pthread_mutex_init(&mutex, NULL);
 
 	int i;
 
@@ -202,6 +225,13 @@ static void fork_child(int n, int writer)
 		   to continue. */
 		fprintf (stderr, "Child %02d started with pid %05d, %s\n", 
 			 n, getpid(), writer ? "writer" : "readonly");
+
+		pthread_mutex_lock(&mutex);
+		int pid = getpid();
+		printf("Adding %d to pids\n", pid);
+		append(pids, pid);		/* Append to pid list */
+		pthread_mutex_unlock(&mutex);
+
 		kill (parent, SIGUSR1);
 		run_test(writer);
 		/* The test should never terminate.  Exit with an error if

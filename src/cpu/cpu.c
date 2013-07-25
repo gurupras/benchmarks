@@ -9,7 +9,8 @@
 
 static unsigned int sleep_interval, repeat_count, repeat_index;
 
-static ull *runs_end_numbers, *runs_end_times;
+static ull **runs_end_numbers;
+static double **runs_end_times;
 static ull primes_size;
 
 static void usage(char *error) {
@@ -87,13 +88,18 @@ static int gracefully_exit() {
 		if(repeat_index == repeat_count) {
 			ull avg_time = 0, avg_num = 0;
 			int count = 0;
-			ull *entry;
-			for_each_entry(entry, runs_end_numbers) {
-				avg_num	   += *entry;
-				count++;
+			{
+				ull entry;
+				for_each_entry(entry, runs_end_numbers) {
+					avg_num	   += entry;
+					count++;
+				}
 			}
-			for_each_entry(entry, runs_end_times)
-				avg_time   += *entry;
+			{
+				ull entry;
+				for_each_entry(entry, runs_end_times)
+						avg_time   += entry;
+			}
 
 			printf("Average time elapsed  :%0.6fs\n", ((avg_time / count) / 1e9) );
 			printf("Average last number   :%llu\n", (avg_num / count) );
@@ -120,7 +126,7 @@ static void alarm_handler(int signal) {
 }
 
 
-static ull *primes;
+static ull **primes;
 
 static inline int is_prime(int number) {
 
@@ -136,7 +142,7 @@ static inline int is_prime(int number) {
     }
 
 //    Every prime number is of the form 6n (+|-) 1
-    if(number % 6 != 1 || number % 6 != 5) {
+    if(number > 6 && (number % 6 != 1 || number % 6 != 5)) {
     	return 1;
     }
 
@@ -146,15 +152,15 @@ static inline int is_prime(int number) {
         }
         divisor += 2;
     }
-    append(primes, number);
+    append(primes, (ull)number);
     return 1;
 }
 
 
 static void init() {
 	if(repeat_count) {
-		runs_end_numbers	= malloc(sizeof(ull) * repeat_count);
-		runs_end_times		= malloc(sizeof(ull) * repeat_count);
+		init_list(runs_end_numbers, repeat_count);
+		init_list(runs_end_times, repeat_count);
 	}
 
 	/*
@@ -167,7 +173,7 @@ static void init() {
 	else
 		primes_size = sizeof(ull) * 10 * 1024;	//Allocate 10K
 
-	primes = malloc(primes_size);
+	init_list(primes, primes_size);
 }
 
 static inline int __bench_cpu() {
@@ -175,7 +181,7 @@ static inline int __bench_cpu() {
 
 	bzero(primes, primes_size);
 
-	append(primes, 2);
+	append(primes, (ull)2);
 	signal(SIGALRM, alarm_handler);
 
 
