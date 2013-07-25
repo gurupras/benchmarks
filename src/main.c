@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 	}
 
 	else if(strcmp(argv[1], "io") == 0) {
-		bench_io(argc, argv);
+		io.run(argc, argv);
 	}
 
 	else if(strcmp(argv[1], "-h") == 0) {
