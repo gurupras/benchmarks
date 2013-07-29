@@ -265,6 +265,7 @@ static void run_test(int writer)
 		page = ((unsigned) random()) % nr_pages;
 		if (page_val(page) != patterns[page])
 			page_error(page);
+		nanosleep(sleep_interval, NULL);
 		/* Writer tasks should modify pages occasionally, too. */
 		if (writer && count++ > 10) {
 			count = 0;
