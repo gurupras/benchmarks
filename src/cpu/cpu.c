@@ -7,8 +7,6 @@
 
 #include <include/common.h>
 
-static unsigned int sleep_interval, repeat_count, repeat_index;
-
 static struct list *runs_end_numbers, *runs_end_times;
 static ull primes_size;
 
@@ -89,19 +87,14 @@ static int gracefully_exit() {
 			int count = 0;
 			{
 				ull *entry;
-				for(__node = runs_end_numbers->head, entry = __node->data;
-					__node != NULL;
-					entry = __node->data, __node = __node->next) {
+				for_each_entry(entry, runs_end_numbers) {
 						avg_num	   += *entry;
 						count++;
 				}
 			}
 			{
 				double *entry;
-				for(__node = runs_end_times->head, entry = __node->data;
-					__node != NULL;
-					entry = __node->data, __node = __node->next
-					)
+				for_each_entry(entry, runs_end_times) {
 						avg_time   += *entry;
 			}
 
