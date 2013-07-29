@@ -26,21 +26,6 @@ int __list_index;
 	list_name = malloc(sizeof(struct list)); \
 	list_name->size = 0;
 
-#define free_list(list_name) \
-{ \
-	struct node *node = list->head; \
-	while(node != list->last_ptr) { \
-		struct node *tmp = node; \
-		node = node->next; \
-		free(tmp->data); \
-		free(tmp); \
-	} \
-	free(list->last_ptr); \
-	free(list); \
-}
-
-
-
 #define append(list,element) \
 { \
 	typeof(element) *ptr = malloc(sizeof(element)); \
@@ -70,5 +55,17 @@ int __list_index;
 	__list_index++, __node = __list_index < list->size ? __node->next : __node, entry = __node->data  \
 	)
 
+#define free_list(list_name) \
+{ \
+	struct node *node = list_name->head; \
+	while(node != list_name->last_ptr) { \
+		struct node *tmp = node; \
+		node = node->next; \
+		free(tmp->data); \
+		free(tmp); \
+	} \
+	free(list_name->last_ptr); \
+	free(list_name); \
+}
 
 #endif /* LIST_H_ */

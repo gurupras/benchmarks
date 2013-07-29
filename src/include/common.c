@@ -10,6 +10,10 @@
 ull start_time, end_time, finish_time = 0;
 ull end_number = ~0, current_number = 0, finish_number = -1;
 
+unsigned int repeat_count, repeat_index;
+
+struct timespec *sleep_interval;
+
 struct itimerval timeout_timer;
 
 char *error_msg;

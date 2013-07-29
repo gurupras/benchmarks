@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
 		usage();
 
 	error_msg = malloc(sizeof(char) * 1024);
+	sleep_interval = malloc(sizeof(struct timespec));
 
 	int i, j;
 	for(i = 0; i < argc; i++) {
