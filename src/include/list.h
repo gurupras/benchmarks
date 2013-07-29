@@ -16,12 +16,15 @@ struct node {
 struct list {
 	struct node *head;
 	struct node *last_ptr;
+	int size;
 };
 
 struct node *__node;
+int __list_index;
 
 #define init_list(list_name) \
-	list_name = malloc(sizeof(struct list));
+	list_name = malloc(sizeof(struct list)); \
+	list_name->size = 0;
 
 #define append(list,element) \
 { \
@@ -42,13 +45,14 @@ struct node *__node;
 		list->head = new_node; \
 		list->last_ptr = list->head; \
 	} \
+	list->size++; \
 }
 
 #define for_each_entry(entry, list) \
 	entry = list->head->data; \
-	for(__node = list->head; \
-	__node != NULL; \
-	__node = __node->next, entry = __node->data \
+	for(__node = list->head, __list_index = 0; \
+	__list_index < list->size; \
+	__list_index++, __node = __list_index < list->size ? __node->next : __node, entry = __node->data  \
 	)
 
 
