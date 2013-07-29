@@ -17,31 +17,7 @@
 #include <ctype.h>
 #include <string.h>
 
-char **__pos;
-
-#define init_list(list, size) \
-{ \
-	int i; \
-	list = malloc(sizeof(void *) * size); \
-	for(i = 0; i < size; i++) \
-		list[i] = NULL; \
-}
-
-#define append(list,element) \
-{ \
-	int index = 0; \
-	while(list[index] != NULL) \
-		index++; \
-	typeof(element) *ptr = malloc(sizeof(element)); \
-	*ptr = element; \
-	list[index] = ptr; \
-}
-
-#define for_each_entry(entry, list) \
-	for( \
-		__pos = (char **)list; \
-		__pos != NULL; \
-		entry = *((typeof(entry) *)__pos[0]), __pos ++)
+#include "list.h"
 
 typedef unsigned long long ull;
 

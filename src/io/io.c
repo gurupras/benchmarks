@@ -7,20 +7,24 @@
 
 #include<include/common.h>
 
-static int **pids;
+static struct list *pids;
 
 
 static int run_benchmark(int argc, char **argv) {
-	init_list(pids, 15);
+	init_list(pids);
 
 	int i;
 
-	for(i = 0; i < 10; i++)
+	for(i = 0; i < 5; i++) {
 		append(pids, i);
+		printf("list->last_ptr = %X\n", pids->last_ptr);
+	}
 
 	int index = 0;
-	for_each_entry(i, pids) {
-		printf("list[%d] = %d\n", index, i);
+	int *entry;
+	for_each_entry(entry, pids) {
+		printf("list->cur_ptr  = %X\n", __node);
+		printf("list[%d] = %d\n", index, *entry);
 		index++;
 	}
 }

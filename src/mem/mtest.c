@@ -26,7 +26,7 @@ int rprocesses	= 8;	/* Number of reader processes */
 int wprocesses	= 1;	/* Number of writer processes */
 int do_fork	= 0;	/* Enable random fork/die if true */
 
-int **pids;			/* Track child PIDs */
+static struct list *pids;	/* Track child PIDs */
 pthread_mutex_t mutex;	/* Mutex semaphore */
 
 int pagesize;
@@ -77,20 +77,14 @@ static int gracefully_exit() {
 
 static void alarm_handler(int signal) {
 	finish_time = rdclock();
-	int pid;
+	int *entry;
+
 	printf("Killing child processes\n");
-//	for_each_entry(pid, pids) {
-//		printf("Killing child %d\n", pid);
-//		kill(pid, SIGALRM);
-//	}
-
-	int **ptr = pids;
-
-	int i = 0;
-	while(ptr[i] != NULL) {
-		printf("ptr[%d] =%d\n", i, ptr[i][0]);
-		i++;
+	for_each_entry(entry, pids) {
+		printf("Killing child %d\n", *entry);
+		kill(*entry, SIGALRM);
 	}
+
 	gracefully_exit();
 }
 
@@ -139,7 +133,7 @@ static int benchmark(int argc, char **argv) {
 	parse_opts(argc, argv);
 
 	printf("size :%d\n", rprocesses + wprocesses);
-	init_list(pids, (rprocesses + wprocesses))
+	init_list(pids)
 	pthread_mutex_init(&mutex, NULL);
 
 	int i;
