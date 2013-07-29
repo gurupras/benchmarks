@@ -8,7 +8,6 @@
 #include <include/common.h>
 
 static struct list *runs_end_numbers, *runs_end_times;
-static ull primes_size;
 
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
@@ -45,7 +44,7 @@ static int parse_opts(int argc, char **argv) {
 		case '?' :
 			usage("invalid command line argument");
 			break;
-		case 't' :
+		case 't' : {
 			end_time = (ull) (atof(optarg) * 1e9);
 			time_t sec 	= end_time / 1e9;
 			time_t usec = ( (end_time - (sec * 1e9)) / 1e3);
@@ -54,12 +53,18 @@ static int parse_opts(int argc, char **argv) {
 			timeout_timer.it_value.tv_sec     = sec;
 			timeout_timer.it_value.tv_usec     = usec;
 			break;
+		}
 		case 'n' :
 			end_number = strtoull(optarg, 0, 0);
 			break;
-		case 's' :
-			sleep_interval = atol(optarg);
+		case 's' : {
+			end_time = (ull) (atof(optarg) * 1e9);
+			time_t sec 	= end_time / 1e9;
+			time_t nsec = ( (end_time - (sec * 1e9)) );
+			sleep_interval->tv_nsec = nsec;
+			sleep_interval->tv_sec  = sec;
 			break;
+		}
 		case 'r' :
 			repeat_count = atoi(optarg);
 			break;
@@ -96,6 +101,7 @@ static int gracefully_exit() {
 				double *entry;
 				for_each_entry(entry, runs_end_times) {
 						avg_time   += *entry;
+				}
 			}
 
 			printf("Average time elapsed  :%0.6fs\n", ((avg_time / count) / 1e9) );
@@ -164,6 +170,8 @@ static void init() {
 }
 
 static inline int __bench_cpu() {
+	init();
+
 	current_number = 0;
 
 	append(primes, (ull)2);
@@ -177,7 +185,7 @@ static inline int __bench_cpu() {
 		is_prime(current_number);
 
 		if(current_number % 1000 == 0 && current_number > 0)
-			usleep(sleep_interval);
+			nanosleep(sleep_interval, NULL);
 
 		if(current_number == end_number)
 			break;
@@ -190,7 +198,6 @@ static inline int __bench_cpu() {
 
 static int run_bench_cpu(int argc, char **argv) {
 	parse_opts(argc, argv);
-	init();
 
 	if(repeat_count) {
 		for(repeat_index = 0; repeat_index < repeat_count; repeat_index++) {
