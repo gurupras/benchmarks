@@ -26,6 +26,21 @@ int __list_index;
 	list_name = malloc(sizeof(struct list)); \
 	list_name->size = 0;
 
+#define free_list(list_name) \
+{ \
+	struct node *node = list->head; \
+	while(node != list->last_ptr) { \
+		struct node *tmp = node; \
+		node = node->next; \
+		free(tmp->data); \
+		free(tmp); \
+	} \
+	free(list->last_ptr); \
+	free(list); \
+}
+
+
+
 #define append(list,element) \
 { \
 	typeof(element) *ptr = malloc(sizeof(element)); \
