@@ -81,8 +81,7 @@ static void alarm_handler(int signal) {
 
 	printf("Killing child processes\n");
 	for_each_entry(entry, pids) {
-		printf("Killing child %d\n", *entry);
-		kill(*entry, SIGALRM);
+		kill(*entry, SIGKILL);
 	}
 
 	gracefully_exit();
@@ -114,7 +113,7 @@ int parse_opts(int argc, char *argv[])
 		case 'w':
 			wprocesses = strtoul(optarg, 0, 0);
 			break;
-		case 't' :
+		case 't' : {
 			end_time = (ull) (atof(optarg) * 1e9);
 			time_t sec 	= end_time / 1e9;
 			time_t usec = ( (end_time - (sec * 1e9)) / 1e3);
@@ -123,6 +122,19 @@ int parse_opts(int argc, char *argv[])
 			timeout_timer.it_value.tv_sec     = sec;
 			timeout_timer.it_value.tv_usec     = usec;
 			break;
+		}
+		case 's' : {
+			end_time = (ull) (atof(optarg) * 1e9);
+			time_t sec 	= end_time / 1e9;
+			time_t nsec = ( (end_time - (sec * 1e9)) );
+			sleep_interval->tv_nsec = nsec;
+			sleep_interval->tv_sec  = sec;
+			break;
+		}
+		case 'r' :
+//			repeat_count = atoi(optarg);
+			break;
+
 		default:
 			usage("unknown error");
 		}
@@ -132,7 +144,6 @@ int parse_opts(int argc, char *argv[])
 static int benchmark(int argc, char **argv) {
 	parse_opts(argc, argv);
 
-	printf("size :%d\n", rprocesses + wprocesses);
 	init_list(pids)
 	pthread_mutex_init(&mutex, NULL);
 
@@ -145,15 +156,15 @@ static int benchmark(int argc, char **argv) {
 	signal(SIGALRM, alarm_handler);
 
 
-	setitimer(ITIMER_REAL, &timeout_timer, 0);
-	start_time = rdclock();
-
 	for (i=0; i<rprocesses; i++)
 		fork_child(i, 0);
 	for (; i<rprocesses+wprocesses; i++)
 		fork_child(i, 1);
 
 	fprintf (stderr, "%d child processes started.\n", i);
+
+	setitimer(ITIMER_REAL, &timeout_timer, 0);
+	start_time = rdclock();
 
 	for (;;) {
 		pid_t pid;
@@ -214,18 +225,14 @@ static void fork_child(int n, int writer)
 		/* Are we the parent?  Wait for the child to print the
 		   startup banner. */
 		pause();
+		append(pids, pid);		/* Append to pid list */
+
 	} else {
 		/* Are we the child?  Print a banner, then signal the parent
 		   to continue. */
 		fprintf (stderr, "Child %02d started with pid %05d, %s\n", 
 			 n, getpid(), writer ? "writer" : "readonly");
-
-		pthread_mutex_lock(&mutex);
-		int pid = getpid();
-		printf("Adding %d to pids\n", pid);
-		append(pids, pid);		/* Append to pid list */
-		pthread_mutex_unlock(&mutex);
-
+		usleep(10);
 		kill (parent, SIGUSR1);
 		run_test(writer);
 		/* The test should never terminate.  Exit with an error if

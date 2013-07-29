@@ -22,7 +22,7 @@ static void usage(char *error) {
 			"    -t <n>    : Specifies a time limit (in micro seconds)\n"
 			"    -n <n>    : Specifies a number limit\n"
 			"    -s <n>    : Add an idle duration for every 1000 numbers tested\n"
-			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
+//			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
 			"\nNOTE:\n"
 			"At least one of -t or -n must be set. \n"
 			"If unset, the program terminates as there is no break condition\n"
@@ -65,8 +65,8 @@ static int parse_opts(int argc, char **argv) {
 			sleep_interval->tv_sec  = sec;
 			break;
 		}
-		case 'r' :
-			repeat_count = atoi(optarg);
+		case 'r' :	//FIXME
+//			repeat_count = atoi(optarg);
 			break;
 		case 'h' :
 			usage(" ");
