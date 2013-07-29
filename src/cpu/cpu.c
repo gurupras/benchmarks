@@ -160,23 +160,11 @@ static void init() {
 		init_list(runs_end_times);
 	}
 
-	/*
-	 * We use the folowing list to maintain a list of computed primes.
-	 * These primes help in faster primality testing.
-	 * Think of it like the Sieve of Eratosthenes
-	 */
-	if(end_number != ~0)
-		primes_size = sizeof(ull) * (end_number / 2);
-	else
-		primes_size = sizeof(ull) * 10 * 1024;	//Allocate 10K
-
 	init_list(primes);
 }
 
 static inline int __bench_cpu() {
 	current_number = 0;
-
-	bzero(primes, primes_size);
 
 	append(primes, (ull)2);
 	signal(SIGALRM, alarm_handler);
