@@ -63,7 +63,7 @@ static void usage(char *error) {
 			"    -m <n>    : Specifies the memory heap size (in Megabytes)\n"
 			"    -d <n>    : Number of readers\n"
 			"    -w <n>    : Number of writers\n"
-			"    -s <n>    : Add an idle duration for every 1000 numbers tested\n"
+			"    -s <n>    : Add an idle duration in-between reads and writes\n"
 //			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
 			, error);
 	if(error)
