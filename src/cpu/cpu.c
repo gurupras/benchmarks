@@ -6,6 +6,8 @@
  */
 
 #include <include/common.h>
+#include <fcntl.h>
+
 
 static struct list *runs_end_numbers, *runs_end_times;
 
@@ -19,9 +21,9 @@ static void usage(char *error) {
 			"Benchmarks the CPU by running a primality test until conditions specified have been satisfied\n"
 			"\nOPTIONS:\n"
 			"    -h        : Print this help message\n"
-			"    -t <n>    : Specifies a time limit (in micro seconds)\n"
+			"    -t <n>    : Specifies a time limit (in nano seconds)\n"
 			"    -n <n>    : Specifies a number limit\n"
-			"    -s <n>    : Add an idle duration for every 1000 numbers tested\n"
+			"    -s <n>    : Add an idle duration for every 1000 numbers tested (in nanoseconds)\n"
 //			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
 			"\nNOTE:\n"
 			"At least one of -t or -n must be set. \n"
@@ -36,7 +38,7 @@ static void usage(char *error) {
 static int parse_opts(int argc, char **argv) {
 	int opt;
 
-	while( (opt = getopt(argc, argv, "t:n:s:r:h")) != -1) {
+	while( (opt = getopt(argc, argv, "t:n:s:r:hp")) != -1) {
 		switch(opt) {
 		case ':' :
 			usage("missing parameter value");
@@ -71,6 +73,9 @@ static int parse_opts(int argc, char **argv) {
 		case 'h' :
 			usage(" ");
 			break;
+		case 'p' :
+//			Experimental periodic_perf
+			periodic_perf = 1;
 		}
 	}
 
@@ -108,13 +113,18 @@ static int gracefully_exit() {
 			printf("Average last number   :%llu\n", (avg_num / count) );
 			exit(0);
 		}
+		return 0;
 	}
 
 	else {
 		printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
 		printf("Last number   :%llu\n", finish_number);
-		exit(0);
 	}
+
+	if(periodic_perf) {
+		periodic_perf_handler(SIGUSR1);
+	}
+	exit(0);
 }
 
 static void alarm_handler(int signal) {
@@ -127,7 +137,6 @@ static void alarm_handler(int signal) {
 	}
 	gracefully_exit();
 }
-
 
 static struct list *primes;
 
@@ -175,11 +184,6 @@ static inline int __bench_cpu() {
 	current_number = 0;
 
 	append(primes, (ull)2);
-	signal(SIGALRM, alarm_handler);
-
-
-	setitimer(ITIMER_REAL, &timeout_timer, 0);
-	start_time = rdclock();
 
 	while(1) {
 		is_prime(current_number);
@@ -198,6 +202,17 @@ static inline int __bench_cpu() {
 
 static int run_bench_cpu(int argc, char **argv) {
 	parse_opts(argc, argv);
+
+	signal(SIGALRM, alarm_handler);
+	if(periodic_perf)
+		signal(SIGUSR1, periodic_perf_handler);
+
+	if(periodic_perf) {
+		reset_periodic_perf_stats();
+	}
+
+	setitimer(ITIMER_REAL, &timeout_timer, 0);
+	start_time = rdclock();
 
 	if(repeat_count) {
 		for(repeat_index = 0; repeat_index < repeat_count; repeat_index++) {
