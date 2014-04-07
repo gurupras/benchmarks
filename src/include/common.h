@@ -25,6 +25,7 @@ extern ull start_time, end_time, finish_time;
 extern ull end_number, current_number, finish_number;
 
 extern unsigned int repeat_count, repeat_index;
+extern unsigned int periodic_perf;
 
 extern struct timespec *sleep_interval;
 extern struct itimerval timeout_timer;
@@ -45,4 +46,6 @@ extern struct benchmark cpu, mem, io;
 inline void panic();
 inline ull rdclock(void);
 
+inline void periodic_perf_handler(int);
+inline void reset_periodic_perf_stats(void);
 #endif /* COMMON_H_ */
