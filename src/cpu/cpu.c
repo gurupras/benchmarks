@@ -8,8 +8,7 @@
 #include <include/common.h>
 #include <fcntl.h>
 
-
-static struct list *runs_end_numbers, *runs_end_times;
+static struct list *primes;
 
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
@@ -21,10 +20,8 @@ static void usage(char *error) {
 			"Benchmarks the CPU by running a primality test until conditions specified have been satisfied\n"
 			"\nOPTIONS:\n"
 			"    -h        : Print this help message\n"
-			"    -t <n>    : Specifies a time limit (in nano seconds)\n"
+			"    -t <n>    : Specifies a time limit (in nanoseconds)\n"
 			"    -n <n>    : Specifies a number limit\n"
-			"    -s <n>    : Add an idle duration for every 1000 numbers tested (in nanoseconds)\n"
-//			"    -r <n>    : Repeat benchmark and print average   (max:100)\n"
 			"\nNOTE:\n"
 			"At least one of -t or -n must be set. \n"
 			"If unset, the program terminates as there is no break condition\n"
@@ -42,9 +39,6 @@ static int parse_opts(int argc, char **argv) {
 		switch(opt) {
 		case ':' :
 			usage("missing parameter value");
-			break;
-		case '?' :
-			usage("invalid command line argument");
 			break;
 		case 't' : {
 			end_time = (ull) (atof(optarg) * 1e9);
@@ -67,15 +61,17 @@ static int parse_opts(int argc, char **argv) {
 			sleep_interval->tv_sec  = sec;
 			break;
 		}
-		case 'r' :	//FIXME
-//			repeat_count = atoi(optarg);
-			break;
 		case 'h' :
 			usage(" ");
 			break;
 		case 'p' :
 //			Experimental periodic_perf
 			periodic_perf = 1;
+			break;
+		default :
+		case '?' :
+			usage("invalid command line argument");
+			break;
 		}
 	}
 
@@ -88,38 +84,8 @@ static int parse_opts(int argc, char **argv) {
 }
 
 static int gracefully_exit() {
-	if(repeat_count) {
-		append(runs_end_numbers, finish_number);
-		append(runs_end_times, ((finish_time - start_time) / 1e9) );
-
-		if(repeat_index == repeat_count) {
-			ull avg_time = 0, avg_num = 0;
-			int count = 0;
-			{
-				ull *entry;
-				for_each_entry(entry, runs_end_numbers) {
-						avg_num	   += *entry;
-						count++;
-				}
-			}
-			{
-				double *entry;
-				for_each_entry(entry, runs_end_times) {
-						avg_time   += *entry;
-				}
-			}
-
-			printf("Average time elapsed  :%0.6fs\n", ((avg_time / count) / 1e9) );
-			printf("Average last number   :%llu\n", (avg_num / count) );
-			exit(0);
-		}
-		return 0;
-	}
-
-	else {
-		printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
-		printf("Last number   :%llu\n", finish_number);
-	}
+	printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
+	printf("Last number   :%llu\n", finish_number);
 
 	if(periodic_perf) {
 		periodic_perf_handler(SIGUSR1);
@@ -130,15 +96,8 @@ static int gracefully_exit() {
 static void alarm_handler(int signal) {
 	finish_time = rdclock();
 	finish_number = current_number;
-
-	if(repeat_count) {
-		append(runs_end_numbers, finish_number);
-		append(runs_end_times, ((finish_time - start_time) / 1e9) );
-	}
 	gracefully_exit();
 }
-
-static struct list *primes;
 
 static inline int is_prime(int number) {
 
@@ -170,59 +129,43 @@ static inline int is_prime(int number) {
 
 
 static void init() {
-	if(repeat_count) {
-		init_list(runs_end_numbers);
-		init_list(runs_end_times);
-	}
-
 	init_list(primes);
 }
 
 static inline int __bench_cpu() {
-	init();
-
-	current_number = 0;
+	current_number = 3;
 
 	append(primes, (ull)2);
 
 	while(1) {
 		is_prime(current_number);
 
-//		if(current_number % 1000 == 0 && current_number > 0)
-//			nanosleep(sleep_interval, NULL);
-
-		if(current_number == end_number)
+		if(unlikely(current_number + 2 >= end_number)) {
+			alarm_handler(SIGALRM);
 			break;
-
-		current_number++;
+		}
+		current_number += 2;
 	}
-
 	return 0;
 }
 
 static int run_bench_cpu(int argc, char **argv) {
 	parse_opts(argc, argv);
+	init();
 
 	signal(SIGALRM, alarm_handler);
-	if(periodic_perf)
-		signal(SIGUSR1, periodic_perf_handler);
 
 	if(periodic_perf) {
+		signal(SIGUSR1, periodic_perf_handler);
 		reset_periodic_perf_stats();
 	}
 
 	setitimer(ITIMER_REAL, &timeout_timer, 0);
 	start_time = rdclock();
 
-	if(repeat_count) {
-		for(repeat_index = 0; repeat_index < repeat_count; repeat_index++) {
-			__bench_cpu();
-		}
-	}
-	else {
-		__bench_cpu();
-	}
-	alarm_handler(SIGALRM);
+	__bench_cpu();
+
+	return 0;
 }
 
 
