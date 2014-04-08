@@ -17,6 +17,9 @@
 #include <ctype.h>
 #include <string.h>
 
+#define unlikely(x)		__builtin_expect(!!(x), 0)
+#define likely(x)		__builtin_expect(!!(x), 1)
+
 #include "list.h"
 
 typedef unsigned long long ull;
