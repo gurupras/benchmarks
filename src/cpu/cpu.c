@@ -188,8 +188,8 @@ static inline int __bench_cpu() {
 	while(1) {
 		is_prime(current_number);
 
-		if(current_number % 1000 == 0 && current_number > 0)
-			nanosleep(sleep_interval, NULL);
+//		if(current_number % 1000 == 0 && current_number > 0)
+//			nanosleep(sleep_interval, NULL);
 
 		if(current_number == end_number)
 			break;
