@@ -29,15 +29,8 @@ cpu.o :
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/cpu/cpu.c -o $@
 
 #Memory benchmark files
-mem.o : misc_lib.o mtest.o
-	$(addprefix $(CROSS), ld) -r $^ -o $@
-
-mtest.o :
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/mem/mtest.c -o $@
-
-misc_lib.o : 
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c src/mem/misc_lib.c -o $@
-
+mem.o : 
+	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/mem/mem.c -o $@
 
 #IO benchmark files
 io.o :
