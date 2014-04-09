@@ -8,6 +8,10 @@
 #include <include/common.h>
 #include <fcntl.h>
 
+ull end_number = ~0, current_number = 0, finish_number = -1;
+
+unsigned int periodic_perf;
+
 static struct list *primes;
 
 static void usage(char *error) {

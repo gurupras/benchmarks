@@ -25,12 +25,9 @@
 typedef unsigned long long ull;
 
 extern ull start_time, end_time, finish_time;
-extern ull end_number, current_number, finish_number;
 
-extern unsigned int repeat_count, repeat_index;
 extern unsigned int periodic_perf;
 
-extern struct timespec *sleep_interval;
 extern struct itimerval timeout_timer;
 
 extern char *error_msg;
