@@ -21,21 +21,21 @@ static void usage() {
 	exit(0);
 }
 
-static void filter_args(int argc, char **argv, int *new_argc, char **new_argv) {
-	int i = 2;
-	*new_argc = 0;
-
-	while(i < argc) {
-		*new_argc = *new_argc + 1;
-		i++;
-	}
-
-	for(i = 0; i < *new_argc; i++) {
-		strcpy(argv[i], argv[i+2]);
-	}
-
-	new_argv = argv;
-}
+//static void filter_args(int argc, char **argv, int *new_argc, char **new_argv) {
+//	int i = 2;
+//	*new_argc = 0;
+//
+//	while(i < argc) {
+//		*new_argc = *new_argc + 1;
+//		i++;
+//	}
+//
+//	for(i = 0; i < *new_argc; i++) {
+//		strcpy(argv[i], argv[i+2]);
+//	}
+//
+//	new_argv = argv;
+//}
 
 int main(int argc, char **argv) {
 	if(argc < 2)
