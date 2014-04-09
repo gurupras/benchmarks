@@ -5,7 +5,7 @@ MAKEFLAGS = --no-builtin-rules
 
 LIBS     = -L. -lrt -lpthread
 
-CC_OPTS = $(CFLAGS) $($*_CC_OPTS) -g 
+CC_OPTS = $(CFLAGS) $($*_CC_OPTS) -Wall -g 
 CC =gcc
 
 all : host
