@@ -26,6 +26,7 @@ static void usage(char *error) {
 			"    -h        : Print this help message\n"
 			"    -t <n>    : Specifies a time limit (in nanoseconds)\n"
 			"    -n <n>    : Specifies a number limit\n"
+			"    -p        : Enable performance counter accounting\n"
 			"\nNOTE:\n"
 			"At least one of -t or -n must be set. \n"
 			"If unset, the program terminates as there is no break condition\n"
