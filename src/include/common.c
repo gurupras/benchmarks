@@ -149,4 +149,6 @@ void reset_periodic_perf_stats() {
 	}
 }
 
-int bench_io(int argc, char **argv){}
+int bench_io(int argc, char **argv) {
+	return 0;
+}
