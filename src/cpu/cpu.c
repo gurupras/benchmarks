@@ -57,14 +57,6 @@ static int parse_opts(int argc, char **argv) {
 		case 'n' :
 			end_number = strtoull(optarg, 0, 0);
 			break;
-		case 's' : {
-			end_time = (ull) (atof(optarg) * 1e9);
-			time_t sec 	= end_time / 1e9;
-			time_t nsec = ( (end_time - (sec * 1e9)) );
-			sleep_interval->tv_nsec = nsec;
-			sleep_interval->tv_sec  = sec;
-			break;
-		}
 		case 'h' :
 			usage(" ");
 			break;
