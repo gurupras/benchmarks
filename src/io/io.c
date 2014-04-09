@@ -7,10 +7,8 @@
 
 #include<include/common.h>
 
-static struct list *pids;
-
-
 static int run_benchmark(int argc, char **argv) {
+	return 0;
 }
 
 struct benchmark io = {
