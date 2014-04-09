@@ -17,7 +17,7 @@ static struct list *primes;
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
 
-	if(error != " ")
+	if(strcmp(error, " ") != 0)
 		file = stderr;
 	fprintf(file, "%s\n"
 			"bench cpu <option>\n"
@@ -33,7 +33,7 @@ static void usage(char *error) {
 			"If both are set, the program terminates upon satisfying either condition\n"
 			, error);
 
-	if(error != " ")
+	if(strcmp(error, " ") != 0)
 		exit(-1);
 }
 
