@@ -28,7 +28,7 @@ inline unsigned long long rdclock(void) {
 }
 
 void common_init() {
-	periodic_perf_init();
+	perf_init();
 }
 
 

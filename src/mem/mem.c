@@ -12,7 +12,7 @@
 #define BYTES_PER_KB	(1024)
 #define BYTES_PER_MB	(1024 * 1024)
 
-#define BUFFER_SIZE		(32 * BYTES_PER_MB)
+#define BUFFER_SIZE		(64 * BYTES_PER_MB)
 
 static ull num_accesses = ~0;
 static unsigned int stride_length = 1;
@@ -110,7 +110,7 @@ static int gracefully_exit() {
 	printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
 	printf("Memory writes :%llu\n", byte_idx / stride_length);
 	if(periodic_perf) {
-		periodic_perf_handler(SIGUSR1);
+		perf_handler(SIGUSR1);
 	}
 	exit(0);
 }
@@ -128,8 +128,9 @@ static void init() {
 		printf("Identifying Stride\n");
 		int repeat_idx, idx, cur_stride = 2;
 		ull max_average_misses = 0;
+		ull cache_miss;
 
-		unsigned int max_stride = 8192;
+		unsigned int max_stride = 2048;
 		unsigned int reads = BUFFER_SIZE / max_stride;
 		unsigned int nr_repeats = 10;
 
@@ -138,11 +139,12 @@ static void init() {
 			for(repeat_idx = 0; repeat_idx < nr_repeats; repeat_idx++) {
 				for(idx = 0; idx < 2 * BYTES_PER_MB; idx++)
 					reset_buffer[idx] = '0';
-				reset_periodic_perf_stats();
+				perf_reset_stats();
 				for(idx = 0; idx < reads; idx++) {
 					buffer[cur_stride * idx] = '0';
 				}
-				total_misses += perf_read_periodic_perf_cache_miss();
+				perf_read_stats(NULL, NULL, &cache_miss);
+				total_misses += cache_miss;
 			}
 			average_misses = total_misses / nr_repeats;
 			if(average_misses > max_average_misses) {
@@ -151,29 +153,32 @@ static void init() {
 				stride_length = cur_stride;
 			}
 //			else
-//				printf("stride %d causes %llu misses\n", cur_stride, average_misses);
+				printf("stride %d causes %llu misses\n", cur_stride, average_misses);
 			cur_stride *= 2;
 		}
 		printf("Chosen stride is :%d\n", stride_length);
+		free(reset_buffer);
+		sleep(1);
 	}
 }
 
 static int run_bench_mem(int argc, char **argv) {
 	parse_opts(argc, argv);
 	init();
-	byte_idx = 0;
+	byte_idx = 1;
 
 	signal(SIGALRM, alarm_handler);
 
 	setitimer(ITIMER_REAL, &timeout_timer, 0);
 	start_time = rdclock();
 	if(periodic_perf) {
-		signal(SIGUSR1, periodic_perf_handler);
-		reset_periodic_perf_stats();
+		signal(SIGUSR1, perf_handler);
+		perf_reset_stats();
 	}
 
 	while(1) {
-			buffer[byte_idx & BUFFER_SIZE] = '0' /*+ (byte_idx % 10)*/;
+			buffer[byte_idx & BUFFER_SIZE] = '4' /*+ (byte_idx % 10)*/;
+			(void) buffer[byte_idx & BUFFER_SIZE];
 			byte_idx += stride_length;
 	}
 

@@ -83,7 +83,7 @@ static int gracefully_exit() {
 	printf("Last number   :%u\n", finish_number);
 
 	if(periodic_perf) {
-		periodic_perf_handler(SIGUSR1);
+		perf_handler(SIGUSR1);
 	}
 	exit(0);
 }
@@ -128,7 +128,7 @@ static void init() {
 	init_list(primes);
 }
 
-static inline int __bench_cpu() {
+static inline int __bench_cpu_prime() {
 	current_number = 3;
 
 //	append(primes, (ull)2);
@@ -145,19 +145,24 @@ static inline int __bench_cpu() {
 	return 0;
 }
 
+static inline int __bench_cpu() {
+	current_number = 0;
+	while(1)
+		current_number++;
+	return 0;
+}
+
 static int run_bench_cpu(int argc, char **argv) {
 	parse_opts(argc, argv);
 	init();
 
 	signal(SIGALRM, alarm_handler);
-
 	if(periodic_perf) {
-		signal(SIGUSR1, periodic_perf_handler);
-		reset_periodic_perf_stats();
+		signal(SIGUSR1, perf_handler);
+		perf_reset_stats();
 	}
-
-	start_time = rdclock();
 	setitimer(ITIMER_REAL, &timeout_timer, 0);
+	start_time = rdclock();
 	__bench_cpu();
 
 	return 0;

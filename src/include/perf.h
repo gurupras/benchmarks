@@ -13,13 +13,10 @@
 extern unsigned int periodic_perf;
 
 
-void periodic_perf_handler(int);
-void reset_periodic_perf_stats(void);
-void periodic_perf_init(void);
+void perf_handler(int);
+void perf_reset_stats(void);
+void perf_init(void);
 
-ull perf_read_periodic_perf_cycles(void);
-ull perf_read_periodic_perf_insts(void);
-ull perf_read_periodic_perf_cache_miss(void);
-void perf_read_power_agile_task_stats(char *buf);
+void perf_read_stats(ull *, ull *, ull *);
 
 #endif /* PERF_H_ */

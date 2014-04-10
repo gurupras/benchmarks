@@ -7,173 +7,87 @@
 
 unsigned int periodic_perf = 0;
 
-static char proc_path[48];
-static char cycles_path[48];
-static char instr_path[48];
-static char cache_miss_path[48];
-static char power_agile_task_stats_path[48];
+static char stats_path[48];
 
-static int perf_open_periodic_perf_cycles() {
-	return open(cycles_path, O_RDWR);
+static int perf_open() {
+	return open(stats_path, O_RDWR);
 }
 
-static int perf_open_periodic_perf_insts() {
-	return open(instr_path, O_RDWR);
-}
-
-static int perf_open_periodic_perf_cache_miss() {
-	return open(cache_miss_path, O_RDWR);
-}
-
-static int perf_open_power_agile_task_stats() {
-	return open(power_agile_task_stats_path, O_RDWR);
-}
-
-ull perf_read_periodic_perf_cycles() {
-	char cycles[32];
+void perf_read_stats(ull *cycles, ull *insts, ull *cache_miss) {
+	char stats[128];
 	int fd, ret;
-	ull val = 0;
-	fd = perf_open_periodic_perf_cycles();
+	fd = perf_open();
 	if(fd > 0) {
-		ret = read(fd, cycles, sizeof cycles);
+		ret = read(fd, stats, sizeof stats);
 		if(ret < 0)
-			perror("Could not read periodic_perf_cycles\n");
-		val = strtoull(cycles, NULL, 0);
+			perror("Could not read perf_stats\n");
+
+		char *ptr 	= strtok(stats, " ");
+		if(cycles)
+			*cycles 	= strtoull(ptr, NULL, 0);
+
+		ptr 		= strtok(NULL, " ");
+		if(insts)
+			*insts		= strtoull(ptr, NULL, 0);
+
+		ptr 		= strtok(NULL, " ");
+		if(cache_miss)
+			*cache_miss	= strtoull(ptr, NULL, 0);
 		close(fd);
 	}
 	else
-		perror("Could not open periodic_perf_cycles\n");
-	return val;
+		perror("Could not open perf_stats\n");
 }
 
-ull perf_read_periodic_perf_insts() {
-	char insts[32];
+void perf_write_stats(char *val) {
 	int fd, ret;
-	ull val = 0;
-	fd = perf_open_periodic_perf_insts();
-	if(fd > 0) {
-		ret = read(fd, insts, sizeof insts);
-		if(ret < 0)
-			perror("Could not read periodic_perf_cycles\n");
-		val = strtoull(insts, NULL, 0);
-		close(fd);
-	}
-	else
-		perror("Could not open periodic_perf_insts\n");
-	return val;
-}
-
-ull perf_read_periodic_perf_cache_miss() {
-	char cache_miss[32];
-	int fd, ret;
-	ull val = 0;
-	fd = perf_open_periodic_perf_cache_miss();
-	if(fd > 0) {
-		ret = read(fd, cache_miss, sizeof cache_miss);
-		if(ret < 0)
-			perror("Could not read periodic_perf_cache_miss\n");
-		val = strtoull(cache_miss, NULL, 0);
-		close(fd);
-	}
-	else
-		perror("Could not open periodic_perf_cache_miss\n");
-	return val;
-}
-
-void perf_read_power_agile_task_stats(char *buf) {
-	int fd, ret;
-	bzero(buf, 128);
-	fd = perf_open_power_agile_task_stats();
-	if(fd > 0) {
-		ret = read(fd, buf, 128);
-		if(ret < 0)
-			perror("Could not read power_agile\n");
-		close(fd);
-	}
-	else
-		perror("Could not open power_agile_task_stats\n");
-}
-
-void perf_write_periodic_perf_cycles(char *val) {
-	int fd, ret;
-	fd = perf_open_periodic_perf_cycles();
+	fd = perf_open();
 	if(fd > 0) {
 		ret = write(fd, val, strlen(val));
 		if(ret < 0)
-			perror("Could not write periodic_perf_cycles\n");
+			perror("Could not write perf_stats\n");
 		close(fd);
 	}
 	else
-		perror("Could not open periodic_perf_cycles\n");
+		perror("Could not open perf_stats\n");
 }
 
-void perf_write_periodic_perf_insts(char *val) {
-	int fd, ret;
-	fd = perf_open_periodic_perf_insts();
-	if(fd > 0) {
-		ret = write(fd, val, strlen(val));
-		if(ret < 0)
-			perror("Could not write periodic_perf_insts\n");
-		close(fd);
-	}
-	else
-		perror("Could not open periodic_perf_insts\n");
-}
-
-void perf_write_periodic_perf_cache_miss(char *val) {
-	int fd, ret;
-	fd = perf_open_periodic_perf_cache_miss();
-	if(fd > 0) {
-		ret = write(fd, val, strlen(val));
-		if(ret < 0)
-			perror("Could not write periodic_perf_cache_miss\n");
-		close(fd);
-	}
-	else
-		perror("Could not open periodic_perf_cache_miss\n");
-}
-
-void perf_write_power_agile_task_stats(char *val) {
-	int fd, ret;
-	fd = perf_open_power_agile_task_stats();
-	if(fd > 0) {
-		ret = write(fd, val, strlen(val));
-		if(ret < 0)
-			perror("Could not write power_agile_task_stats\n");
-		close(fd);
-	}
-	else
-		perror("Could not open power_agile_task_stats\n");
-}
-
-void periodic_perf_handler(int signal) {
-	char power_agile_task_stats[128];
+void perf_handler(int signal) {
 	ull cycles = 0, insts = 0, cache_miss = 0;
 
-	cycles		= perf_read_periodic_perf_cycles();
-	insts		= perf_read_periodic_perf_insts();
-	cache_miss	= perf_read_periodic_perf_cache_miss();
-	perf_read_power_agile_task_stats(power_agile_task_stats);
+	perf_read_stats(&cycles, &insts, &cache_miss);
 	printf("Cycles       :%llu\n", cycles);
 	printf("Instructions :%llu\n", insts);
 	printf("Cache-misses :%llu\n", cache_miss);
-	printf("stats        :%s\n", power_agile_task_stats);
 }
 
-void periodic_perf_init() {
-	int pid = getpid();
+void perf_init() {
+	int fd;
+	int pid;
+	char proc_path[48];
+	char periodic_perf_path[64], power_agile_path[64];
+
+	pid = getpid();
 
 	snprintf(proc_path, 48, "/proc/%d", pid);
-	snprintf(cycles_path, 48, "%s/periodic_perf_cycles", proc_path);
-	snprintf(instr_path, 48, "%s/periodic_perf_instr", proc_path);
-	snprintf(cache_miss_path, 48, "%s/periodic_perf_cache_miss", proc_path);
-	snprintf(power_agile_task_stats_path, 48, "%s/power_agile_task_stats", proc_path);
+	snprintf(power_agile_path, 48, "%s/power_agile_task_stats", proc_path);
+	snprintf(periodic_perf_path, 48, "%s/periodic_perf_stats", proc_path);
+
+	fd = open(periodic_perf_path, O_RDWR);
+	if(fd > 0) {
+		strcpy(stats_path, periodic_perf_path);
+		return;
+	}
+	fd = open(power_agile_path, O_RDWR);
+	if(fd > 0) {
+		strcpy(stats_path, power_agile_path);
+		return;
+	}
+	else
+		panic("perf init failed!");
 }
 
-void reset_periodic_perf_stats() {
+void perf_reset_stats() {
 	char *value = "0";
-	perf_write_periodic_perf_cycles(value);
-	perf_write_periodic_perf_insts(value);
-	perf_write_periodic_perf_cache_miss(value);
-	perf_write_power_agile_task_stats(value);
+	perf_write_stats(value);
 }
