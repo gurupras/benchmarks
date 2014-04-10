@@ -1,40 +1,34 @@
-
+PROG_NAME=bench
 MAKEFLAGS = --no-builtin-rules
 # We don't use any suffix rules
 .SUFFIXES :
 
-LIBS     = -L. -lrt -lpthread
+LIBS     = -L. -lrt
 
-CC_OPTS = $(CFLAGS) $($*_CC_OPTS) -Wall -g 
+MODULES=common cpu mem io
+SOURCE_DIRS=$(addprefix src/, $(MODULES))
+BUILD_DIR=build/
+INCLUDE=src/include
+
+vpath %.h $(INCLUDE)
+vpath %.c $(SOURCE_DIRS)
+VPATH=src:$(SOURCE_DIRS)
+
+CFLAGS=-Isrc
+CC_OPTS = $(CFLAGS) $($*_CC_OPTS) -Wall -g -static
 CC =gcc
 
 all : host
 
 host : CROSS=
 arm  : CROSS=arm-none-linux-gnueabi-
-host arm : built-in.o cpu.o mem.o common.o bench.o
-	$(addprefix $(CROSS), $(CC)) $(CFLAGS) -g -static -o bench built-in.o $(LIBS)
-	@rm -rf *.o *.a
-
-built-in.o : common.o cpu.o mem.o io.o bench.o
+host arm : built-in.o main.o
+	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
+built-in.o : common.o perf.o cpu.o mem.o io.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
-	
-bench.o :
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/main.c -o $@
-	
-common.o :
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c src/include/common.c -o $@
+%.o : %.c
+	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c $< -o $@
 
-cpu.o : 
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/cpu/cpu.c -o $@
-
-#Memory benchmark files
-mem.o : 
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/mem/mem.c -o $@
-
-#IO benchmark files
-io.o :
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -Isrc -c src/io/io.c -o $@
 
 clean :
-	rm -rf *.o *.a bench
+	rm -rf *.o *.a $(PROG_NAME)

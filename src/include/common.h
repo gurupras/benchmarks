@@ -26,7 +26,7 @@ typedef unsigned long long ull;
 
 extern ull start_time, end_time, finish_time;
 
-extern unsigned int periodic_perf;
+
 
 extern struct itimerval timeout_timer;
 
@@ -46,6 +46,6 @@ extern struct benchmark cpu, mem, io;
 inline void panic();
 inline ull rdclock(void);
 
-inline void periodic_perf_handler(int);
-inline void reset_periodic_perf_stats(void);
+void common_init(void);
+
 #endif /* COMMON_H_ */

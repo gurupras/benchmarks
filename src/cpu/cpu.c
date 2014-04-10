@@ -5,12 +5,10 @@
  *      Author: guru
  */
 
-#include <include/common.h>
-#include <fcntl.h>
+#include "include/common.h"
+#include "include/perf.h"
 
-ull end_number = ~0, current_number = 0, finish_number = -1;
-
-unsigned int periodic_perf;
+unsigned int end_number = ~0, current_number = 0, finish_number = -1;
 
 static struct list *primes;
 
@@ -82,7 +80,7 @@ static int parse_opts(int argc, char **argv) {
 
 static int gracefully_exit() {
 	printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
-	printf("Last number   :%llu\n", finish_number);
+	printf("Last number   :%u\n", finish_number);
 
 	if(periodic_perf) {
 		periodic_perf_handler(SIGUSR1);
@@ -98,7 +96,7 @@ static void alarm_handler(int signal) {
 
 static inline int is_prime(int number) {
 
-    ull divisor = 3;
+    unsigned int divisor = 3;
 
     if(number == 1ULL ) {
         //1 is neither prime nor composite
@@ -120,19 +118,20 @@ static inline int is_prime(int number) {
         }
         divisor += 2;
     }
-    append(primes, (ull)number);
+//    append(primes, (ull)number);
     return 1;
 }
 
 
 static void init() {
+	common_init();
 	init_list(primes);
 }
 
 static inline int __bench_cpu() {
 	current_number = 3;
 
-	append(primes, (ull)2);
+//	append(primes, (ull)2);
 
 	while(1) {
 		is_prime(current_number);
@@ -157,9 +156,8 @@ static int run_bench_cpu(int argc, char **argv) {
 		reset_periodic_perf_stats();
 	}
 
-	setitimer(ITIMER_REAL, &timeout_timer, 0);
 	start_time = rdclock();
-
+	setitimer(ITIMER_REAL, &timeout_timer, 0);
 	__bench_cpu();
 
 	return 0;
