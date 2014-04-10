@@ -6,22 +6,21 @@
  */
 
 
-#include <include/common.h>
-#include <fcntl.h>
+#include "include/common.h"
+#include "include/perf.h"
 
-#define BYTES_PER_KB	1024
-#define BYTES_PER_MB	1024 * 1024
+#define BYTES_PER_KB	(1024)
+#define BYTES_PER_MB	(1024 * 1024)
 
-#define BUFFER_SIZE		4 * BYTES_PER_MB
+#define BUFFER_SIZE		(32 * BYTES_PER_MB)
 
 static ull num_accesses = ~0;
-static int stride_length = 32 * BYTES_PER_KB;
+static unsigned int stride_length = 1;
 
-static volatile char buffer1[BUFFER_SIZE];
-static volatile char buffer2[BUFFER_SIZE];
+static char buffer[BUFFER_SIZE];
 
 static int load_flag = 0, store_flag = 0;
-
+static ull byte_idx;
 
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
@@ -109,7 +108,7 @@ static int parse_opts(int argc, char **argv) {
 
 static int gracefully_exit() {
 	printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
-
+	printf("Memory writes :%llu\n", byte_idx / stride_length);
 	if(periodic_perf) {
 		periodic_perf_handler(SIGUSR1);
 	}
@@ -122,36 +121,60 @@ static void alarm_handler(int signal) {
 }
 
 static void init() {
-	int idx;
-	srand(time(NULL));
-	for(idx = 0; idx < BUFFER_SIZE; idx++) {
-		buffer1[idx] = rand() % 256;
-		buffer2[idx] = rand() % 256;
+	common_init();
+	char *reset_buffer = malloc(2 * BYTES_PER_MB);
+
+	if(periodic_perf) {
+		printf("Identifying Stride\n");
+		int repeat_idx, idx, cur_stride = 2;
+		ull max_average_misses = 0;
+
+		unsigned int max_stride = 8192;
+		unsigned int reads = BUFFER_SIZE / max_stride;
+		unsigned int nr_repeats = 10;
+
+		while(cur_stride <= max_stride) {
+			ull average_misses = 0, total_misses = 0;
+			for(repeat_idx = 0; repeat_idx < nr_repeats; repeat_idx++) {
+				for(idx = 0; idx < 2 * BYTES_PER_MB; idx++)
+					reset_buffer[idx] = '0';
+				reset_periodic_perf_stats();
+				for(idx = 0; idx < reads; idx++) {
+					buffer[cur_stride * idx] = '0';
+				}
+				total_misses += perf_read_periodic_perf_cache_miss();
+			}
+			average_misses = total_misses / nr_repeats;
+			if(average_misses > max_average_misses) {
+//				printf("stride %d causes more misses %llu\n", cur_stride, average_misses);
+				max_average_misses = average_misses;
+				stride_length = cur_stride;
+			}
+//			else
+//				printf("stride %d causes %llu misses\n", cur_stride, average_misses);
+			cur_stride *= 2;
+		}
+		printf("Chosen stride is :%d\n", stride_length);
 	}
 }
 
 static int run_bench_mem(int argc, char **argv) {
 	parse_opts(argc, argv);
 	init();
+	byte_idx = 0;
 
 	signal(SIGALRM, alarm_handler);
 
+	setitimer(ITIMER_REAL, &timeout_timer, 0);
+	start_time = rdclock();
 	if(periodic_perf) {
 		signal(SIGUSR1, periodic_perf_handler);
 		reset_periodic_perf_stats();
 	}
 
-	setitimer(ITIMER_REAL, &timeout_timer, 0);
-	start_time = rdclock();
-
-	int buffer_pos = 0;
 	while(1) {
-		buffer1[buffer_pos] = buffer2[buffer_pos];
-
-		buffer_pos = (buffer_pos + stride_length) % BUFFER_SIZE;
-//		access_idx++;
-//		if(unlikely(access_idx == num_accesses))
-//			alarm_handler(SIGALRM);
+			buffer[byte_idx & BUFFER_SIZE] = '0' /*+ (byte_idx % 10)*/;
+			byte_idx += stride_length;
 	}
 
 	return 0;
