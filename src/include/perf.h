@@ -17,6 +17,6 @@ void perf_handler(int);
 void perf_reset_stats(void);
 void perf_init(void);
 
-void perf_read_stats(ull *, ull *, ull *);
+void perf_read_stats(u64 *, u64 *, u64 *);
 
 #endif /* PERF_H_ */

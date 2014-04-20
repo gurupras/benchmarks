@@ -14,13 +14,13 @@
 
 #define BUFFER_SIZE		(64 * BYTES_PER_MB)
 
-static ull num_accesses = ~0;
+static u64 num_accesses = ~0;
 static unsigned int stride_length = 1;
 
 static char buffer[BUFFER_SIZE];
 
 static int load_flag = 0, store_flag = 0;
-static ull byte_idx;
+static u64 byte_idx;
 
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
@@ -57,7 +57,7 @@ static int parse_opts(int argc, char **argv) {
 			usage("missing parameter value");
 			break;
 		case 't' : {
-			end_time = (ull) (atof(optarg) * 1e9);
+			end_time = (u64) (atof(optarg) * 1e9);
 			time_t sec 	= end_time / 1e9;
 			time_t usec = ( (end_time - (sec * 1e9)) / 1e3);
 			timeout_timer.it_interval.tv_usec = 0;
@@ -127,15 +127,15 @@ static void init() {
 	if(periodic_perf) {
 		printf("Identifying Stride\n");
 		int repeat_idx, idx, cur_stride = 2;
-		ull max_average_misses = 0;
-		ull cache_miss;
+		u64 max_average_misses = 0;
+		u64 cache_miss;
 
 		unsigned int max_stride = 2048;
 		unsigned int reads = BUFFER_SIZE / max_stride;
 		unsigned int nr_repeats = 10;
 
 		while(cur_stride <= max_stride) {
-			ull average_misses = 0, total_misses = 0;
+			u64 average_misses = 0, total_misses = 0;
 			for(repeat_idx = 0; repeat_idx < nr_repeats; repeat_idx++) {
 				for(idx = 0; idx < 2 * BYTES_PER_MB; idx++)
 					reset_buffer[idx] = '0';

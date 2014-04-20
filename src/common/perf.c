@@ -13,7 +13,7 @@ static int perf_open() {
 	return open(stats_path, O_RDWR);
 }
 
-void perf_read_stats(ull *cycles, ull *insts, ull *cache_miss) {
+void perf_read_stats(u64 *cycles, u64 *insts, u64 *cache_miss) {
 	char stats[128];
 	int fd, ret;
 	fd = perf_open();
@@ -53,7 +53,7 @@ void perf_write_stats(char *val) {
 }
 
 void perf_handler(int signal) {
-	ull cycles = 0, insts = 0, cache_miss = 0;
+	u64 cycles = 0, insts = 0, cache_miss = 0;
 
 	perf_read_stats(&cycles, &insts, &cache_miss);
 	printf("Cycles       :%llu\n", cycles);

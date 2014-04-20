@@ -24,7 +24,7 @@ host : CROSS=
 arm  : CROSS=arm-none-linux-gnueabi-
 host arm : built-in.o main.o
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
-built-in.o : common.o perf.o cpu.o mem.o io.o
+built-in.o : common.o perf.o tuning_library.o cpu.o mem.o io.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
 %.o : %.c
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c $< -o $@

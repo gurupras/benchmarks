@@ -9,7 +9,7 @@
 #include "include/perf.h"
 #include <fcntl.h>
 
-ull start_time, end_time, finish_time = 0;
+u64 start_time, end_time, finish_time = 0;
 
 struct itimerval timeout_timer;
 
@@ -20,7 +20,7 @@ inline void panic() {
 	exit(-1);
 }
 
-inline unsigned long long rdclock(void) {
+inline u64 rdclock(void) {
 	struct timespec ts;
 
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);

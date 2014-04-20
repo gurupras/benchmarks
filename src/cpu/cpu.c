@@ -7,9 +7,10 @@
 
 #include "include/common.h"
 #include "include/perf.h"
+#include "include/tuning_library.h"
 
-unsigned int end_number = ~0, current_number = 0, finish_number = -1;
-
+u64 end_number = ~0, current_number = 0, finish_number = -1;
+static struct timespec sleep_interval = {0,0};
 static struct list *primes;
 
 static void usage(char *error) {
@@ -23,8 +24,10 @@ static void usage(char *error) {
 			"\nOPTIONS:\n"
 			"    -h        : Print this help message\n"
 			"    -t <n>    : Specifies a time limit (in nanoseconds)\n"
+			"    -s <n>    : Specifies an intermittent sleep interval\n"
 			"    -n <n>    : Specifies a number limit\n"
 			"    -p        : Enable performance counter accounting\n"
+			"    -u        : Enable the power-agile tuning library\n"
 			"\nNOTE:\n"
 			"At least one of -t or -n must be set. \n"
 			"If unset, the program terminates as there is no break condition\n"
@@ -44,13 +47,19 @@ static int parse_opts(int argc, char **argv) {
 			usage("missing parameter value");
 			break;
 		case 't' : {
-			end_time = (ull) (atof(optarg) * 1e9);
+			end_time = (u64) (atof(optarg) * 1e9);
 			time_t sec 	= end_time / 1e9;
 			time_t usec = ( (end_time - (sec * 1e9)) / 1e3);
 			timeout_timer.it_interval.tv_usec = 0;
 			timeout_timer.it_interval.tv_sec  = 0;
 			timeout_timer.it_value.tv_sec     = sec;
 			timeout_timer.it_value.tv_usec     = usec;
+			break;
+		}
+		case 's' : {
+			time_t sleep_period = (u64) (atof(optarg) * 1e9);
+			sleep_interval.tv_sec	= sleep_period / 1e9;
+			sleep_interval.tv_nsec	= (sleep_period - (sleep_interval.tv_sec * 1e9));
 			break;
 		}
 		case 'n' :
@@ -62,6 +71,9 @@ static int parse_opts(int argc, char **argv) {
 		case 'p' :
 //			Experimental periodic_perf
 			periodic_perf = 1;
+			break;
+		case 'u' :
+			tuning_library_init();
 			break;
 		default :
 		case '?' :
@@ -80,7 +92,7 @@ static int parse_opts(int argc, char **argv) {
 
 static int gracefully_exit() {
 	printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
-	printf("Last number   :%u\n", finish_number);
+	printf("Last number   :%llu\n", finish_number);
 
 	if(periodic_perf) {
 		perf_handler(SIGUSR1);
@@ -124,7 +136,8 @@ static inline int is_prime(int number) {
 
 
 static void init() {
-	common_init();
+	if(periodic_perf)
+		common_init();
 	init_list(primes);
 }
 
@@ -140,6 +153,10 @@ static inline int __bench_cpu_prime() {
 			alarm_handler(SIGALRM);
 			break;
 		}
+
+		if(unlikely(current_number % 9999 == 0))
+			nanosleep(&sleep_interval, NULL);
+
 		current_number += 2;
 	}
 	return 0;
@@ -147,8 +164,13 @@ static inline int __bench_cpu_prime() {
 
 static inline int __bench_cpu() {
 	current_number = 0;
-	while(1)
+	while(1) {
 		current_number++;
+		if(unlikely(current_number % 10000 == 0))
+			nanosleep(&sleep_interval, NULL);
+		if(unlikely(current_number == end_number))
+			alarm_handler(SIGALRM);
+	}
 	return 0;
 }
 

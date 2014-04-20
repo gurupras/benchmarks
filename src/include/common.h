@@ -16,15 +16,17 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <inttypes.h>
 
 #define unlikely(x)		__builtin_expect(!!(x), 0)
 #define likely(x)		__builtin_expect(!!(x), 1)
 
 #include "list.h"
 
-typedef unsigned long long ull;
+typedef unsigned long long u64;
+typedef unsigned int u32;
 
-extern ull start_time, end_time, finish_time;
+extern u64 start_time, end_time, finish_time;
 
 
 
@@ -44,7 +46,7 @@ extern struct benchmark cpu, mem, io;
 
 
 inline void panic();
-inline ull rdclock(void);
+inline u64 rdclock(void);
 
 void common_init(void);
 
