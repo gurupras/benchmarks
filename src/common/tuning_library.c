@@ -5,12 +5,21 @@
  *      Author: guru
  */
 
-#include "include/common.h"
-#include "include/tuning_library.h"
+#include "tuning_library.h"
 
+#include <time.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 
+typedef unsigned long long u64;
+typedef unsigned int u32;
 
 #define POWER_AGILE_INEFFICIENCY_BUDGET 	"power_agile_inefficiency_budget"
 #define POWER_AGILE_CONTROLLER				"power_agile_controller"
@@ -76,30 +85,6 @@ static struct stats *prev_stats;
 static unsigned int is_tuning_disabled = 0;
 static unsigned int interval = 100;	//in us
 static pid_t my_pid = -1;
-
-int tuning_library_init() {
-	my_pid = getpid();
-	if(my_pid < 0) {
-		return -EINVAL;
-	}
-
-	char *path = malloc(sizeof(char) * 64);
-	bzero(path, 64);
-	snprintf(path, 64, "/proc/%d/" POWER_AGILE_INEFFICIENCY_BUDGET, my_pid);
-	inefficiency_path = path;
-
-	path = malloc(sizeof(char) * 64);
-	bzero(path, 64);
-	snprintf(path, 64, "/proc/%d/" POWER_AGILE_CONTROLLER, my_pid);
-	controller_path = path;
-
-	path = malloc(sizeof(char) * 64);
-	bzero(path, 64);
-	snprintf(path, 64, "/proc/%d/" POWER_AGILE_TASK_STATS, my_pid);
-	task_stats_path = path;
-
-	return 0;
-}
 
 void tuning_library_set_interval(unsigned int val) {
 	interval = val;
@@ -349,7 +334,7 @@ static int compute_net_inefficiency_target(struct net_stats stats) {
 	return stats.net_inefficiency;
 }
 
-static void run_tuning_algorithm() {
+static void run_tuning_algorithm(int signal) {
 	int err = 0;
 	if(prev_stats == NULL) {
 		int inefficiency_budget;
@@ -382,9 +367,35 @@ static void run_tuning_algorithm() {
 	schedule();
 }
 
+int tuning_library_init() {
+	my_pid = getpid();
+	if(my_pid < 0) {
+		return -EINVAL;
+	}
+
+	signal(SIGALRM, run_tuning_algorithm);
+
+	char *path = malloc(sizeof(char) * 64);
+	bzero(path, 64);
+	snprintf(path, 64, "/proc/%d/" POWER_AGILE_INEFFICIENCY_BUDGET, my_pid);
+	inefficiency_path = path;
+
+	path = malloc(sizeof(char) * 64);
+	bzero(path, 64);
+	snprintf(path, 64, "/proc/%d/" POWER_AGILE_CONTROLLER, my_pid);
+	controller_path = path;
+
+	path = malloc(sizeof(char) * 64);
+	bzero(path, 64);
+	snprintf(path, 64, "/proc/%d/" POWER_AGILE_TASK_STATS, my_pid);
+	task_stats_path = path;
+
+	return 0;
+}
+
 void tuning_library_start() {
 	is_tuning_disabled = 0;
-	run_tuning_algorithm();
+	run_tuning_algorithm(0);
 }
 
 void tuning_library_stop() {

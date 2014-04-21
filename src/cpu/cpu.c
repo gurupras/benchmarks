@@ -10,6 +10,7 @@
 #include "include/tuning_library.h"
 
 u64 end_number = ~0, current_number = 0, finish_number = -1;
+static int is_tuning_enabled = 0;
 static struct timespec sleep_interval = {0,0};
 static struct list *primes;
 
@@ -41,7 +42,7 @@ static void usage(char *error) {
 static int parse_opts(int argc, char **argv) {
 	int opt;
 
-	while( (opt = getopt(argc, argv, "t:n:s:r:hp")) != -1) {
+	while( (opt = getopt(argc, argv, "t:n:s:r:hpu")) != -1) {
 		switch(opt) {
 		case ':' :
 			usage("missing parameter value");
@@ -73,7 +74,7 @@ static int parse_opts(int argc, char **argv) {
 			periodic_perf = 1;
 			break;
 		case 'u' :
-			tuning_library_init();
+			is_tuning_enabled = 1;
 			break;
 		default :
 		case '?' :
@@ -138,7 +139,13 @@ static inline int is_prime(int number) {
 static void init() {
 	if(periodic_perf)
 		common_init();
+
 	init_list(primes);
+
+	if(is_tuning_enabled) {
+		tuning_library_init();
+		tuning_library_start();
+	}
 }
 
 static inline int __bench_cpu_prime() {
