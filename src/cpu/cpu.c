@@ -11,6 +11,7 @@
 
 u64 end_number = ~0, current_number = 0, finish_number = -1;
 static int is_tuning_enabled = 0;
+static int is_finished = 0;
 static struct timespec sleep_interval = {0,0};
 static struct list *primes;
 
@@ -98,7 +99,8 @@ static int gracefully_exit() {
 	if(periodic_perf) {
 		perf_handler(SIGUSR1);
 	}
-	exit(0);
+	is_finished = 1;
+	return 0;
 }
 
 static void alarm_handler(int signal) {
@@ -153,7 +155,7 @@ static inline int __bench_cpu_prime() {
 
 //	append(primes, (ull)2);
 
-	while(1) {
+	while(!is_finished) {
 		is_prime(current_number);
 
 		if(unlikely(current_number + 2 >= end_number)) {
@@ -171,7 +173,7 @@ static inline int __bench_cpu_prime() {
 
 static inline int __bench_cpu() {
 	current_number = 0;
-	while(1) {
+	while(!is_finished) {
 		current_number++;
 		if(unlikely(current_number % 10000 == 0))
 			nanosleep(&sleep_interval, NULL);
