@@ -79,7 +79,6 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	sleep(0.01);
 	//80%load
 	cpu_load_double = 80 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
@@ -116,7 +115,6 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	sleep(0.01);
 	//80%load
 	cpu_load_double = 80 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
