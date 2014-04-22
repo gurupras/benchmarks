@@ -10,9 +10,7 @@
 #include "include/perf.h"
 
 #ifdef ARM
-#define ARRAY_SIZE		524288	//4MB
 
-static uint64_t array[sizeof(uint64_t) * ARRAY_SIZE];
 static int is_finished = 0;
 
 static void usage(char *error) {
@@ -113,11 +111,7 @@ static void alarm_handler(int signal) {
 	gracefully_exit();
 }
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-
-uint64_t *array_copy;
+uint64_t *memArray, *memArrayCopy, arraySize;
 unsigned long long memAccesses;
 int accessesPerLoop, cacheBlockSize, step, stepInBytes;
 
@@ -135,7 +129,7 @@ static void memfreq_test_loop() {
 	asm volatile("mov %0, r2" : "=r" (r2_value));
 	asm volatile("mov %0, r6" : "=r" (r6_value));
 
-	asm volatile("mov %%r4, %0" : :"r" (array_copy));
+	asm volatile("mov %%r4, %0" : :"r" (memArrayCopy));
 	asm volatile("mov %%r7, %0" : : "r" (stepInBytes));
         asm volatile("mov %%r6, %0" : : "r" (accessesPerLoop));
         asm volatile("mov %%r3, %0" : : "r" (step));
@@ -182,7 +176,7 @@ static void dummy_mem_frequency_test_run()
 {
 	int i;
 
-	array_copy = array;
+	memArrayCopy = memArray;
 
 	asm volatile("dummy_memory_loop_start: nop");
 
@@ -192,35 +186,43 @@ static void dummy_mem_frequency_test_run()
 	asm volatile("dummy_memory_loop_finish: nop");
 }
 
-static void mem_init() {
+void mem_init() {
 	int i;
 
+	arraySize = 524288;// 4MB
 	// l2cache size is 2MB = 2097152bytes.
-	// Minimum ARRAY_SIZE should be 2*2MB = 4194304bytes. 524288 elements;
+	// Minimum arraysize should be 2*2MB = 4194304bytes. 524288 elements;
 
 	cacheBlockSize = 64; //64 bytes
 	step = cacheBlockSize/8; // each cache block has 8 elements
 	step = 8192;
 	stepInBytes = step * 8; //8 bytes per element
-	accessesPerLoop = ARRAY_SIZE/step;
+	accessesPerLoop = arraySize/step;
 
-	for(i=0; i<ARRAY_SIZE; i++)
-		array[i] = i;
+	memArray = malloc(sizeof(uint64_t) * arraySize);
+	for(i=0; i<arraySize; i++)
+		memArray[i] = i;
 
-	array_copy = array;
+	memArrayCopy = memArray;
 }
-static void operation_run_mem(int loops) {
+
+void operation_run_mem(int loops) {
 
 	memAccesses = loops * accessesPerLoop; //accessing every 16th element .. and loop repeats 5 times
 
 	printf("Starting the benchmark\n");
-	printf("ARRAY_SIZE is %u\n",ARRAY_SIZE);
+	printf("arraySize is %llu\n",arraySize);
 	printf("step is %d\n",step);
 	printf("accessesPerLoop are %d\n",accessesPerLoop);
 	printf("Loops are %d\n",loops);
 	printf("Expected Mem access:%llu\n",memAccesses);
 
 	calculate_mem_frequency(loops);
+}
+
+void mem_exit() {
+	free(memArray);
+	//free(memArrayCopy);
 }
 
 static int run_bench_mem(int argc, char **argv) {
@@ -230,6 +232,7 @@ static int run_bench_mem(int argc, char **argv) {
 }
 
 struct benchmark mem = {
+	.init				= mem_init,
 	.usage				= usage,
 	.parse_opts			= parse_opts,
 	.alarm_handler		= alarm_handler,
@@ -239,6 +242,7 @@ struct benchmark mem = {
 };
 #else
 struct benchmark mem = {
+	.init				= NULL,
 	.usage				= NULL,
 	.parse_opts			= NULL,
 	.alarm_handler		= NULL,

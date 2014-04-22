@@ -199,10 +199,12 @@ static int run_bench_cpu(int argc, char **argv) {
 	return 0;
 }
 
-static void timed_bench_cpu(double time) {
+static void timed_bench_cpu(u64 time) {
+	if(time == 0ULL)
+		return;
 	is_finished = 0;
 	current_number = 3;
-	end_time = (uint64_t)(time * 1e9);
+	end_time = time;
 	time_t sec 	= end_time / 1e9;
 	time_t usec = ( (end_time - (sec * 1e9)) / 1e3);
 	timeout_timer.it_interval.tv_usec = 0;

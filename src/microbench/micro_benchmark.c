@@ -6,6 +6,14 @@
 #include "include/perf.h"
 #include "include/tuning_library.h"
 
+// All time units in ns
+#define USEC_TO_NSEC	(1000)
+#define MSEC_TO_NSEC	(1000 * USEC_TO_NSEC)
+#define SEC_TO_NSEC		(1000 * MSEC_TO_NSEC)
+
+#define GOVERNOR_POLL_INTERVAL	((u64) (10 * MSEC_TO_NSEC))
+#define MEM_OPERATION_DURATION	((u64) (20 * USEC_TO_NSEC))
+
 int run_micro_benchmark(int argc, char **argv) {
 /* mem.operation_run takes a little more than 10ms for
 every 50K mem accesses. Each mem.operation_run results in
@@ -15,24 +23,21 @@ every 50K mem accesses. Each mem.operation_run results in
 //trying to generate a workload of varying phases
 // cpu intensive, memory intensive, cpu + memory mix and idle
 
-	//100% load
-	cpu.timed_run(0.1);	//10ms
+	int cpu_load;
+	u64 duration = GOVERNOR_POLL_INTERVAL * 2;
+	u64 operations = 0;
 
-	//80%load
-	mem.operation_run(100);	//2ms
-	cpu.timed_run(0.08);	//8ms
+	mem.init();
+	printf("Starting micro benchmark\n");
 
-	//60% cpuload
-	mem.operation_run(200);	//4ms
-	cpu.timed_run(0.06);	//6ms
-
-	//40% cpuload
-	mem.operation_run(300);	//6ms
-	cpu.timed_run(0.04);	//4ms
-
-	//20%cpu load
-	mem.operation_run(400);	//8ms
-	cpu.timed_run(0.02);	//2ms
+	for(cpu_load = 100; cpu_load >= 0; cpu_load -= 20) {
+		double cpu_load_double = cpu_load / (double) 100;
+		operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+		mem.operation_run(operations);	//2ms
+		printf("Starting cpu benchmark with load :%f\n", cpu_load_double);
+		cpu.timed_run(cpu_load_double * duration);	//10ms
+		printf("\n");
+	}
 
 //dummy runs
 	mem.operation_run(500);
@@ -40,51 +45,95 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.operation_run(500);
 	mem.operation_run(500);
 
+	for(cpu_load = 0; cpu_load <= 100; cpu_load += 20) {
+		double cpu_load_double = cpu_load / (double) 100;
+		operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+		mem.operation_run(operations);
+		printf("Starting cpu benchmark with load :%f\n", cpu_load_double);
+		cpu.timed_run(cpu_load_double * duration);
+		printf("\n");
+	}
 
-	//0% cpuload
-	mem.operation_run(500);	//10ms
-
-	//20%cpu load
-	mem.operation_run(400);	//8ms
-	cpu.timed_run(0.02);	//2ms
-
-	//40% cpuload
-	mem.operation_run(300);	//6ms
-	cpu.timed_run(0.04);	//4ms
-
-	//60% cpuload
-	mem.operation_run(200);	//4ms
-	cpu.timed_run(0.06);	//6ms
-	
 //dummy runs
 	mem.operation_run(500);
 	mem.operation_run(500);
 	mem.operation_run(500);
 	mem.operation_run(500);
 
+	double cpu_load_double;
 	//80%load
-	mem.operation_run(100);	//2ms
-	cpu.timed_run(0.08);	//8ms
+	cpu_load_double = 80 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
 
 	//100%load
-	cpu.timed_run(0.1);	//10ms
+	cpu_load_double = 100 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
 
 	//20%cpu load
-	mem.operation_run(400);	//8ms
-	cpu.timed_run(0.02);	//2ms
+	cpu_load_double = 20 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
 
 	sleep(0.01);
 	//80%load
-	mem.operation_run(100);	//2ms
-	cpu.timed_run(0.08);	//8ms
+	cpu_load_double = 80 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
 
 	//40% cpuload
-	mem.operation_run(300);	//6ms
-	cpu.timed_run(0.04);	//4ms
+	cpu_load_double = 40 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
 
 	//60% cpuload
-	mem.operation_run(200);	//4ms
-	cpu.timed_run(0.06);	//6ms
+	cpu_load_double = 60 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
+
+	//80%load
+	cpu_load_double = 80 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
+
+	//100%load
+	cpu_load_double = 100 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
+
+	//20%cpu load
+	cpu_load_double = 20 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
+
+	sleep(0.01);
+	//80%load
+	cpu_load_double = 80 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
+
+	//40% cpuload
+	cpu_load_double = 40 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
+
+	//60% cpuload
+	cpu_load_double = 60 / (double) 100;
+	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
+	mem.operation_run(operations);
+	cpu.timed_run((cpu_load_double * duration));
 
 	return 0;
 }

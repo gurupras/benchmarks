@@ -35,12 +35,14 @@ extern struct itimerval timeout_timer;
 extern char *error_msg;
 
 struct benchmark {
+	void (*init) (void);
 	void (*usage) (char *error);
 	int  (*parse_opts) (int argc, char **argv);
 	void (*alarm_handler) (int signal);
 	int  (*gracefully_exit) (void);
 	int  (*run) (int argc, char **argv);
-	void (*timed_run) (double time);
+	/** Time in ns */
+	void (*timed_run) (u64 time);
 	void (*operation_run) (int operations);
 };
 
