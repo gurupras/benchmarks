@@ -11,7 +11,7 @@
 
 u64 end_number = ~0, current_number = 0, finish_number = -1;
 static int is_tuning_enabled = 0;
-static int is_finished = 0;
+static volatile int is_finished = 0;
 static struct timespec sleep_interval = {0,0};
 static struct list *primes;
 
@@ -173,7 +173,7 @@ static inline int __bench_cpu_prime() {
 
 static inline int __bench_cpu() {
 	current_number = 0;
-	while(!is_finished) {
+	while(unlikely(is_finished)) {
 		current_number++;
 		if(unlikely(current_number % 10000 == 0))
 			nanosleep(&sleep_interval, NULL);
@@ -186,7 +186,7 @@ static inline int __bench_cpu() {
 static int run_bench_cpu(int argc, char **argv) {
 	parse_opts(argc, argv);
 	init();
-
+	is_finished = 0;
 	signal(SIGALRM, alarm_handler);
 	if(periodic_perf) {
 		signal(SIGUSR1, perf_handler);
@@ -194,11 +194,37 @@ static int run_bench_cpu(int argc, char **argv) {
 	}
 	setitimer(ITIMER_REAL, &timeout_timer, 0);
 	start_time = rdclock();
-	__bench_cpu();
+	__bench_cpu_prime();
 
 	return 0;
 }
 
+static void timed_bench_cpu(double time) {
+	is_finished = 0;
+	current_number = 3;
+	end_time = (uint64_t)(time * 1e9);
+	time_t sec 	= end_time / 1e9;
+	time_t usec = ( (end_time - (sec * 1e9)) / 1e3);
+	timeout_timer.it_interval.tv_usec = 0;
+	timeout_timer.it_interval.tv_sec  = 0;
+	timeout_timer.it_value.tv_sec     = sec;
+	timeout_timer.it_value.tv_usec     = usec;
+
+	signal(SIGALRM, alarm_handler);
+
+	start_time = rdclock();
+	setitimer(ITIMER_REAL, &timeout_timer, 0);
+
+	while(!is_finished) {
+		is_prime(current_number);
+
+		if(unlikely(current_number + 2 >= end_number)) {
+			alarm_handler(SIGALRM);
+			break;
+		}
+		current_number += 2;
+	}
+}
 
 struct benchmark cpu = {
 	.usage				= usage,
@@ -206,4 +232,5 @@ struct benchmark cpu = {
 	.alarm_handler		= alarm_handler,
 	.gracefully_exit	= gracefully_exit,
 	.run				= run_bench_cpu,
+	.timed_run			= timed_bench_cpu,
 };

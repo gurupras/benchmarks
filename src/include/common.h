@@ -40,9 +40,11 @@ struct benchmark {
 	void (*alarm_handler) (int signal);
 	int  (*gracefully_exit) (void);
 	int  (*run) (int argc, char **argv);
+	void (*timed_run) (double time);
+	void (*operation_run) (int operations);
 };
 
-extern struct benchmark cpu, mem, io;
+extern struct benchmark cpu, mem, io, micro_benchmark;
 
 
 inline void panic();

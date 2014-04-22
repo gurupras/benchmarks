@@ -5,7 +5,7 @@ MAKEFLAGS = --no-builtin-rules
 
 LIBS     = -L. -lrt
 
-MODULES=common cpu mem io
+MODULES=common cpu mem io microbench
 SOURCE_DIRS=$(addprefix src/, $(MODULES))
 BUILD_DIR=build/
 INCLUDE=src/include
@@ -22,10 +22,14 @@ all : host
 
 host : CROSS=
 arm  : CROSS=arm-none-linux-gnueabi-
+arm  : CFLAGS+= -D ARM
+
 host arm : built-in.o main.o
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
-built-in.o : common.o perf.o tuning_library.o cpu.o mem.o io.o
+
+built-in.o : common.o perf.o tuning_library.o cpu.o mem.o io.o micro_benchmark.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
+
 %.o : %.c
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c $< -o $@
 

@@ -9,18 +9,11 @@
 #include "include/common.h"
 #include "include/perf.h"
 
-#define BYTES_PER_KB	(1024)
-#define BYTES_PER_MB	(1024 * 1024)
+#ifdef ARM
+#define ARRAY_SIZE		524288	//4MB
 
-#define BUFFER_SIZE		(64 * BYTES_PER_MB)
-
-static u64 num_accesses = ~0;
-static unsigned int stride_length = 1;
-
-static char buffer[BUFFER_SIZE];
-
-static int load_flag = 0, store_flag = 0;
-static u64 byte_idx;
+static uint64_t array[sizeof(uint64_t) * ARRAY_SIZE];
+static int is_finished = 0;
 
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
@@ -35,8 +28,8 @@ static void usage(char *error) {
 			"    -t <n>    : Specifies a time limit (in nanoseconds)\n"
 			"    -n <n>    : Specifies number of memory accesses(loads and stores)\n"
 			"    -l        : UNIMPLEMENTED: Use memory loads only (default is mixed)\n"
-			"    -s        : UNIMPLEMENTED: Use memory stores only (default is mixed)\n"
-			"    -d <n>    : Set stride length to <n> bytes\n"
+//			"    -s        : UNIMPLEMENTED: Use memory stores only (default is mixed)\n"
+//			"    -d <n>    : Set stride length to <n> bytes\n"
 			"    -p        : Enable performance counter accounting\n"
 			"\nNOTE:\n"
 			"At least one of -t or -n must be set. \n"
@@ -67,16 +60,16 @@ static int parse_opts(int argc, char **argv) {
 			break;
 		}
 		case 'n' :
-			num_accesses = strtoull(optarg, 0, 0);
+//			num_accesses = strtoull(optarg, 0, 0);
 			break;
 		case 'l' :
-			load_flag = 1;
+//			load_flag = 1;
 			break;
 		case 's' :
-			store_flag = 1;
+//			store_flag = 1;
 			break;
 		case 'd' :
-			stride_length = atoi(optarg);
+//			stride_length = atoi(optarg);
 			break;
 		case 'h' :
 			usage(" ");
@@ -92,27 +85,27 @@ static int parse_opts(int argc, char **argv) {
 		}
 	}
 
-	if(load_flag && store_flag)
-		printf("Warning: loads and stores are both selected. Switching to mixed mode\n");
-	if(!load_flag && !store_flag) {
-		load_flag = 1;
-		store_flag = 1;
-	}
-	if(end_time == 0 && num_accesses == ~0) {
-		usage("No options specified\nTerminating program due to infinite loop!\n");
-		panic(" ");
-	}
+//	if(load_flag && store_flag)
+//		printf("Warning: loads and stores are both selected. Switching to mixed mode\n");
+//	if(!load_flag && !store_flag) {
+//		load_flag = 1;
+//		store_flag = 1;
+//	}
+//	if(end_time == 0 && num_accesses == ~0) {
+//		usage("No options specified\nTerminating program due to infinite loop!\n");
+//		panic(" ");
+//	}
 
 	return 0;
 }
 
 static int gracefully_exit() {
 	printf("Time elapsed  :%0.6fs\n", ((finish_time - start_time) / 1e9) );
-	printf("Memory writes :%llu\n", byte_idx / stride_length);
 	if(periodic_perf) {
 		perf_handler(SIGUSR1);
 	}
-	exit(0);
+	is_finished = 1;
+	return 0;
 }
 
 static void alarm_handler(int signal) {
@@ -120,75 +113,137 @@ static void alarm_handler(int signal) {
 	gracefully_exit();
 }
 
-static void init() {
-	common_init();
-	char *reset_buffer = malloc(2 * BYTES_PER_MB);
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 
-	if(periodic_perf) {
-		printf("Identifying Stride\n");
-		int repeat_idx, idx, cur_stride = 2;
-		u64 max_average_misses = 0;
-		u64 cache_miss;
+uint64_t *array_copy;
+unsigned long long memAccesses;
+int accessesPerLoop, cacheBlockSize, step, stepInBytes;
 
-		unsigned int max_stride = 2048;
-		unsigned int reads = BUFFER_SIZE / max_stride;
-		unsigned int nr_repeats = 10;
+static void memfreq_test_loop() {
+	unsigned int value;
+	unsigned int r3_value, r4_value, r5_value, r7_value, r10_value, r2_value,r6_value;
+	(void) value;
 
-		while(cur_stride <= max_stride) {
-			u64 average_misses = 0, total_misses = 0;
-			for(repeat_idx = 0; repeat_idx < nr_repeats; repeat_idx++) {
-				for(idx = 0; idx < 2 * BYTES_PER_MB; idx++)
-					reset_buffer[idx] = '0';
-				perf_reset_stats();
-				for(idx = 0; idx < reads; idx++) {
-					buffer[cur_stride * idx] = '0';
-				}
-				perf_read_stats(NULL, NULL, &cache_miss);
-				total_misses += cache_miss;
-			}
-			average_misses = total_misses / nr_repeats;
-			if(average_misses > max_average_misses) {
-//				printf("stride %d causes more misses %llu\n", cur_stride, average_misses);
-				max_average_misses = average_misses;
-				stride_length = cur_stride;
-			}
-//			else
-				printf("stride %d causes %llu misses\n", cur_stride, average_misses);
-			cur_stride *= 2;
-		}
-		printf("Chosen stride is :%d\n", stride_length);
-		free(reset_buffer);
-		sleep(1);
+//	Saving register state
+	asm volatile("mov %0, r3" : "=r" (r3_value));
+	asm volatile("mov %0, r4" : "=r" (r4_value));
+	asm volatile("mov %0, r5" : "=r" (r5_value));
+	asm volatile("mov %0, r7" : "=r" (r7_value));
+	asm volatile("mov %0, r10" : "=r" (r10_value));
+	asm volatile("mov %0, r2" : "=r" (r2_value));
+	asm volatile("mov %0, r6" : "=r" (r6_value));
+
+	asm volatile("mov %%r4, %0" : :"r" (array_copy));
+	asm volatile("mov %%r7, %0" : : "r" (stepInBytes));
+        asm volatile("mov %%r6, %0" : : "r" (accessesPerLoop));
+        asm volatile("mov %%r3, %0" : : "r" (step));
+
+	asm volatile("mov r3, #0");
+        asm volatile("mov r5, #0");
+        asm volatile("mov r10, #0");
+
+//	-----			Start core loop			-----
+        asm volatile("array_loop: ldr r2, [r4,r3]");
+        asm volatile("add r10,r10,r2");
+        asm volatile("add r3,r3,r7");
+        asm volatile("sub r6,r6,#1");
+	asm volatile("cmp r6, r5");
+	asm volatile("bne array_loop");
+
+//	Restoring register state
+	asm volatile("mov r3, %0" : : "r" (r3_value));
+	asm volatile("mov r4, %0" : : "r" (r4_value));
+	asm volatile("mov r5, %0" : : "r" (r5_value));
+	asm volatile("mov r7, %0" : : "r" (r7_value));
+	asm volatile("mov r10, %0" : : "r" (r10_value));
+	asm volatile("mov r2, %0" : : "r" (r2_value));
+	asm volatile("mov r6, %0" : : "r" (r6_value));
+
+//	-----		End core loop			-----
+}
+
+static void calculate_mem_frequency(int loops)
+{
+	int i;
+
+	printf("memBmark: Obtained start time.. Starting loop . . .\n");
+//	asm volatile("tight_loop_start: nop");
+
+	for(i=0; i<loops; i++) {
+		memfreq_test_loop();
 	}
+//	asm volatile("tight_loop_finish: nop");
+	printf("memBmark: Obtained end time.. \n");
+}
+
+static void dummy_mem_frequency_test_run()
+{
+	int i;
+
+	array_copy = array;
+
+	asm volatile("dummy_memory_loop_start: nop");
+
+	for(i=0; i<5; i++) {
+		memfreq_test_loop();
+	}
+	asm volatile("dummy_memory_loop_finish: nop");
+}
+
+static void mem_init() {
+	int i;
+
+	// l2cache size is 2MB = 2097152bytes.
+	// Minimum ARRAY_SIZE should be 2*2MB = 4194304bytes. 524288 elements;
+
+	cacheBlockSize = 64; //64 bytes
+	step = cacheBlockSize/8; // each cache block has 8 elements
+	step = 8192;
+	stepInBytes = step * 8; //8 bytes per element
+	accessesPerLoop = ARRAY_SIZE/step;
+
+	for(i=0; i<ARRAY_SIZE; i++)
+		array[i] = i;
+
+	array_copy = array;
+}
+static void operation_run_mem(int loops) {
+
+	memAccesses = loops * accessesPerLoop; //accessing every 16th element .. and loop repeats 5 times
+
+	printf("Starting the benchmark\n");
+	printf("ARRAY_SIZE is %u\n",ARRAY_SIZE);
+	printf("step is %d\n",step);
+	printf("accessesPerLoop are %d\n",accessesPerLoop);
+	printf("Loops are %d\n",loops);
+	printf("Expected Mem access:%llu\n",memAccesses);
+
+	calculate_mem_frequency(loops);
 }
 
 static int run_bench_mem(int argc, char **argv) {
-	parse_opts(argc, argv);
-	init();
-	byte_idx = 1;
-
-	signal(SIGALRM, alarm_handler);
-
-	setitimer(ITIMER_REAL, &timeout_timer, 0);
-	start_time = rdclock();
-	if(periodic_perf) {
-		signal(SIGUSR1, perf_handler);
-		perf_reset_stats();
-	}
-
-	while(1) {
-			buffer[byte_idx & BUFFER_SIZE] = '4' /*+ (byte_idx % 10)*/;
-			(void) buffer[byte_idx & BUFFER_SIZE];
-			byte_idx += stride_length;
-	}
-
+	mem_init();
+//	TODO
 	return 0;
 }
 
+struct benchmark mem = {
+	.usage				= usage,
+	.parse_opts			= parse_opts,
+	.alarm_handler		= alarm_handler,
+	.gracefully_exit	= gracefully_exit,
+	.run				= run_bench_mem,
+	.operation_run		= operation_run_mem,
+};
+#else
 struct benchmark mem = {
 	.usage				= NULL,
 	.parse_opts			= NULL,
 	.alarm_handler		= NULL,
 	.gracefully_exit	= NULL,
-	.run				= run_bench_mem,
+	.run				= NULL,
+	.operation_run		= NULL,
 };
+#endif

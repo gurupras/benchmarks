@@ -53,15 +53,15 @@ int main(int argc, char **argv) {
 	if(strcmp(argv[1], "cpu") == 0) {
 		cpu.run(argc, argv);
 	}
-
 	else if(strcmp(argv[1], "mem") == 0) {
 		mem.run(argc, argv);
 	}
-
 	else if(strcmp(argv[1], "io") == 0) {
 		io.run(argc, argv);
 	}
-
+	else if(strcmp(argv[1], "micro") == 0) {
+		micro_benchmark.run(argc, argv);
+	}
 	else if(strcmp(argv[1], "-h") == 0) {
 		usage();
 	}
