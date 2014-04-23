@@ -8,10 +8,14 @@
 
 #include "include/common.h"
 #include "include/perf.h"
+#include "include/tuning_library.h"
 
 #ifdef ARM
 
 static int is_finished = 0;
+static int is_tuning_enabled = 0;
+
+static u64 num_loops;
 
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
@@ -23,16 +27,16 @@ static void usage(char *error) {
 			"Benchmarks the memory by executing loads and stores\n"
 			"\nOPTIONS:\n"
 			"    -h        : Print this help message\n"
-			"    -t <n>    : Specifies a time limit (in nanoseconds)\n"
+//			"    -t <n>    : Specifies a time limit (in nanoseconds)\n"
 			"    -n <n>    : Specifies number of memory accesses(loads and stores)\n"
-			"    -l        : UNIMPLEMENTED: Use memory loads only (default is mixed)\n"
+//			"    -l        : UNIMPLEMENTED: Use memory loads only (default is mixed)\n"
 //			"    -s        : UNIMPLEMENTED: Use memory stores only (default is mixed)\n"
 //			"    -d <n>    : Set stride length to <n> bytes\n"
 			"    -p        : Enable performance counter accounting\n"
+			"    -u        : Enable the power-agile tuning library\n"
 			"\nNOTE:\n"
-			"At least one of -t or -n must be set. \n"
+			"-n must be set. \n"
 			"If unset, the program terminates as there is no break condition\n"
-			"If both are set, the program terminates upon satisfying either condition\n"
 			, error);
 
 	if(strcmp(error, " ") != 0)
@@ -42,7 +46,7 @@ static void usage(char *error) {
 static int parse_opts(int argc, char **argv) {
 	int opt;
 
-	while( (opt = getopt(argc, argv, "t:n:d:hlsp")) != -1) {
+	while( (opt = getopt(argc, argv, "t:n:d:hlspu")) != -1) {
 		switch(opt) {
 		case ':' :
 			usage("missing parameter value");
@@ -58,7 +62,7 @@ static int parse_opts(int argc, char **argv) {
 			break;
 		}
 		case 'n' :
-//			num_accesses = strtoull(optarg, 0, 0);
+			num_loops = strtoull(optarg, 0, 0);
 			break;
 		case 'l' :
 //			load_flag = 1;
@@ -75,6 +79,9 @@ static int parse_opts(int argc, char **argv) {
 		case 'p' :
 //			Experimental periodic_perf
 			periodic_perf = 1;
+			break;
+		case 'u' :
+			is_tuning_enabled = 1;
 			break;
 		default :
 		case '?' :
@@ -226,8 +233,14 @@ void mem_exit() {
 }
 
 static int run_bench_mem(int argc, char **argv) {
+	parse_opts(argc, argv);
 	mem_init();
-//	TODO
+	if(is_tuning_enabled) {
+		tuning_library_init();
+		tuning_library_start();
+	}
+
+	operation_run_mem(num_loops);
 	return 0;
 }
 

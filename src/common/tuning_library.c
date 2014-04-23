@@ -304,29 +304,22 @@ static inline void schedule() {
 
 static int compute_cpu_inefficiency_target(struct cpu_stats stats) {
 	double busy_percentage = 100 - ((stats.cpu_idle_time / (double) stats.cpu_total_time) * 100);
-	if(busy_percentage > 80) {
-//		TODO: How do we make use of achieved inefficiency
-		return stats.cpu_max_inefficiency;
-	}
-	else if(busy_percentage <= 50) {
-		int new_inefficiency = (stats.cpu_max_inefficiency * busy_percentage) / 100;
-		new_inefficiency = new_inefficiency == 0 ? 1 : new_inefficiency;
-		return new_inefficiency;
-	}
-	return stats.cpu_inefficiency;
+
+//	We apply the busy percentage only if it is greater than the up threshold or lower than the down threshold.
+//	If this condition was not being checked, then what we would see is a jump to some frequency, then a load of 100%
+//	Which would result in a jump to the max frequency and then just alternation between the two states.
+		if(busy_percentage >= 80 || busy_percentage <= 20)
+			return stats.cpu_max_inefficiency * busy_percentage;
+		return stats.cpu_inefficiency;
 }
 
 static int compute_mem_inefficiency_target(struct mem_stats stats, u64 total_time) {
 	double busy_percentage = 100 - ((stats.mem_active_time / (double) total_time) * 100);
-	if(busy_percentage > 80) {
-//		TODO: How do we make use of achieved inefficiency
-		return stats.mem_max_inefficiency;
-	}
-	else if(busy_percentage <= 50) {
-		int new_inefficiency = (stats.mem_max_inefficiency * busy_percentage) / 100;
-		new_inefficiency = new_inefficiency == 0 ? 1 : new_inefficiency;
-		return new_inefficiency;
-	}
+//	We apply the busy percentage only if it is greater than the up threshold or lower than the down threshold.
+//	If this condition was not being checked, then what we would see is a jump to some frequency, then a load of 100%
+//	Which would result in a jump to the max frequency and then just alternation between the two states.
+	if(busy_percentage >= 60 || busy_percentage <= 20)
+		return stats.mem_max_inefficiency * busy_percentage;
 	return stats.mem_inefficiency;
 }
 
