@@ -24,7 +24,11 @@ every 50K mem accesses. Each mem.operation_run results in
 // cpu intensive, memory intensive, cpu + memory mix and idle
 
 	int cpu_load;
-	u64 duration = GOVERNOR_POLL_INTERVAL * 2;
+
+	int multiplier = 2;
+	if(argc == 3)
+		multiplier = atoi(argv[2]);
+	u64 duration = GOVERNOR_POLL_INTERVAL * multiplier;
 	u64 operations = 0;
 
 	mem.init();
