@@ -205,12 +205,12 @@ static void timed_bench_cpu(u64 time) {
 	is_finished = 0;
 	current_number = 3;
 	end_time = time;
-	time_t sec 	= end_time / 1e9;
-	time_t usec = ( (end_time - (sec * 1e9)) / 1e3);
+	time_t sec 	= end_time / SEC_TO_NSEC;
+	time_t usec = ( (end_time - (sec * SEC_TO_NSEC)) / USEC_TO_NSEC);
 	timeout_timer.it_interval.tv_usec = 0;
 	timeout_timer.it_interval.tv_sec  = 0;
 	timeout_timer.it_value.tv_sec     = sec;
-	timeout_timer.it_value.tv_usec     = usec;
+	timeout_timer.it_value.tv_usec    = usec;
 
 	signal(SIGALRM, alarm_handler);
 
