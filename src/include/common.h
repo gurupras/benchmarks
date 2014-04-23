@@ -21,6 +21,10 @@
 #define unlikely(x)		__builtin_expect(!!(x), 0)
 #define likely(x)		__builtin_expect(!!(x), 1)
 
+#define USEC_TO_NSEC	(1000)
+#define MSEC_TO_NSEC	(1000 * USEC_TO_NSEC)
+#define SEC_TO_NSEC		(1000 * MSEC_TO_NSEC)
+
 #include "list.h"
 
 typedef unsigned long long u64;
