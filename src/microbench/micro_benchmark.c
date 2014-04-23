@@ -6,10 +6,6 @@
 #include "include/perf.h"
 #include "include/tuning_library.h"
 
-// All time units in ns
-#define USEC_TO_NSEC	(1000)
-#define MSEC_TO_NSEC	(1000 * USEC_TO_NSEC)
-#define SEC_TO_NSEC		(1000 * MSEC_TO_NSEC)
 
 #define GOVERNOR_POLL_INTERVAL	((u64) (10 * MSEC_TO_NSEC))
 #define MEM_OPERATION_DURATION	((u64) (20 * USEC_TO_NSEC))
@@ -36,9 +32,11 @@ every 50K mem accesses. Each mem.operation_run results in
 
 	for(cpu_load = 100; cpu_load >= 0; cpu_load -= 20) {
 		double cpu_load_double = cpu_load / (double) 100;
+		double current_duration = cpu_load_double * duration;
 		operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
 		mem.operation_run(operations);	//2ms
-		printf("Starting cpu benchmark with load :%f\n", cpu_load_double);
+		printf("Starting cpu benchmark with load :%f  duration :%f\n", cpu_load_double, current_duration);
+
 		cpu.timed_run(cpu_load_double * duration);	//10ms
 		printf("\n");
 	}
