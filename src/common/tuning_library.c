@@ -21,10 +21,13 @@
 typedef unsigned long long u64;
 typedef unsigned int u32;
 
-#define POWER_AGILE_INEFFICIENCY_BUDGET 	"power_agile_inefficiency_budget"
+#define POWER_AGILE_INEFFICIENCY_BUDGET 	"power_agile_task_inefficiency_budget"
 #define POWER_AGILE_CONTROLLER				"power_agile_controller"
 #define POWER_AGILE_TASK_STATS				"power_agile_task_stats"
 
+
+static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
+static unsigned int cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency;
 
 enum COMPONENT {
 	CPU,
@@ -32,6 +35,8 @@ enum COMPONENT {
 	NET,
 	NR_COMPONENTS,
 };
+
+static const char *components_str[] = {"cpu", "mem", "net"};
 
 struct component_inefficiency {
 	enum COMPONENT component;
@@ -98,9 +103,8 @@ static int read_controller(struct component_inefficiency *map) {
 		return fd;
 	}
 
-	char *buf;
-	buf = malloc(sizeof(char) * 32);
-	char *base = buf;
+	char buf[64];
+	char *tmp = buf;
 	err = read(fd, buf, sizeof buf);
 	if(err < 0) {
 		perror("Unable to read controller\n");
@@ -108,19 +112,18 @@ static int read_controller(struct component_inefficiency *map) {
 	}
 	close(fd);
 
-	char *ptr = strsep(&buf, " ");
+	char *ptr = strsep(&tmp, " ");
 	map[0].component = CPU;
 	map[0].inefficiency = atoi(ptr);
 
-	ptr = strsep(&buf, " ");
+	ptr = strsep(&tmp, " ");
 	map[1].component = MEM;
 	map[1].inefficiency = atoi(ptr);
 
-	ptr = strsep(&buf, " ");
+	ptr = strsep(&tmp, " ");
 	map[2].component = NET;
 	map[2].inefficiency = atoi(ptr);
 
-	free(base);
 	return 0;
 }
 
@@ -155,8 +158,7 @@ static int read_stats(struct stats *stats) {
 		perror("Could not open task_stats\n");
 		return fd;
 	}
-	char *buf;
-	buf = malloc(1024);
+	char buf[1024];
 	err = read(fd, buf, sizeof(buf));
 	if(err < 0) {
 		perror("Could not read task_stats\n");
@@ -187,62 +189,66 @@ static int read_stats(struct stats *stats) {
 
 
 //	CPU STATS
-	str = strsep(&ptr, " ");
-	stats->cpu.cpu_busy_cycles				= strtoull(str, NULL, 0);
+	if(is_cpu_tunable) {
+		str = strsep(&ptr, " ");
+		stats->cpu.cpu_busy_cycles				= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->cpu.cpu_idle_time				= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->cpu.cpu_idle_time				= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->cpu.cpu_total_time				= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->cpu.cpu_total_time				= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->cpu.cpu_inefficiency				= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->cpu.cpu_inefficiency				= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->cpu.cpu_achieved_inefficiency	= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->cpu.cpu_achieved_inefficiency	= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->cpu.cpu_max_inefficiency			= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->cpu.cpu_max_inefficiency			= strtoull(str, NULL, 0);
+	}
 
 
 //	MEM STATS
-	str = strsep(&ptr, " ");
-	stats->mem.mem_actpreread_events		= strtoull(str, NULL, 0);
+	if(is_mem_tunable) {
+		str = strsep(&ptr, " ");
+		stats->mem.mem_actpreread_events		= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_actprewrite_events		= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->mem.mem_actprewrite_events		= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_reads					= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->mem.mem_reads					= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_writes					= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->mem.mem_writes					= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_precharge_time			= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->mem.mem_precharge_time			= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_active_time				= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->mem.mem_active_time				= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_refresh_events			= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->mem.mem_refresh_events			= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_inefficiency				= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->mem.mem_inefficiency				= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_achieved_inefficiency	= strtoull(str, NULL, 0);
+		str = strsep(&ptr, " ");
+		stats->mem.mem_achieved_inefficiency	= strtoull(str, NULL, 0);
 
-	str = strsep(&ptr, " ");
-	stats->mem.mem_max_inefficiency			= strtoull(str, NULL, 0);
-
+		str = strsep(&ptr, " ");
+		stats->mem.mem_max_inefficiency			= strtoull(str, NULL, 0);
+	}
 
 //	NET STATS
-	str = strsep(&ptr, " ");
-	stats->net.net_inefficiency				= strtoull(str, NULL, 0);
+	if(is_net_tunable) {
+		str = strsep(&ptr, " ");
+		stats->net.net_inefficiency				= strtoull(str, NULL, 0);
+	}
 
-	free(buf);
 	return 0;
 }
 
@@ -265,7 +271,7 @@ static int write_stats(char *buf) {
 
 static int read_inefficiency_budget(int *budget) {
 	int err = 0;
-	char buf[32];
+	char buf[64];
 	int fd = open(inefficiency_path, O_RDONLY);
 	if(fd < 0) {
 		perror("Could not open inefficiency_budget\n");
@@ -283,7 +289,40 @@ static int read_inefficiency_budget(int *budget) {
 }
 
 static int read_power_agile_components() {
-//	TODO
+	char buf[32];
+	int err;
+	int fd;
+
+	fd = open("/proc/power_agile_inefficiency_components", O_RDONLY);
+	if(fd < 0) {
+		perror("Unable to open power_agile_components\n");
+		return -1;
+	}
+	err = read(fd, buf, sizeof buf);
+	if(err < 0) {
+		perror("Unable to read power_agile_components\n");
+		return -1;
+	}
+
+	char *ptr = buf;
+	char *str;
+
+	(void) components_str;
+	while((str = strsep(&ptr, " ")) != NULL) {
+//		We currently hard-code this
+		if(strcmp(str, "cpu") == 0) {
+			is_cpu_tunable = 1;
+			cpu_max_inefficiency = atoi(strsep(&ptr, " "));
+		}
+		if(strcmp(str, "mem") == 0) {
+			is_mem_tunable = 1;
+			mem_max_inefficiency = atoi(strsep(&ptr, " "));
+		}
+		if(strcmp(str, "net") == 0) {
+			is_net_tunable = 1;
+			net_max_inefficiency = atoi(strsep(&ptr, " "));
+		}
+	}
 	return 0;
 }
 
@@ -309,7 +348,7 @@ static int compute_cpu_inefficiency_target(struct cpu_stats stats) {
 //	If this condition was not being checked, then what we would see is a jump to some frequency, then a load of 100%
 //	Which would result in a jump to the max frequency and then just alternation between the two states.
 		if(busy_percentage >= 80 || busy_percentage <= 20)
-			return stats.cpu_max_inefficiency * busy_percentage;
+			return cpu_max_inefficiency * busy_percentage / 100;
 		return stats.cpu_inefficiency;
 }
 
@@ -319,7 +358,7 @@ static int compute_mem_inefficiency_target(struct mem_stats stats, u64 total_tim
 //	If this condition was not being checked, then what we would see is a jump to some frequency, then a load of 100%
 //	Which would result in a jump to the max frequency and then just alternation between the two states.
 	if(busy_percentage >= 60 || busy_percentage <= 20)
-		return stats.mem_max_inefficiency * busy_percentage;
+		return mem_max_inefficiency * busy_percentage / 100;
 	return stats.mem_inefficiency;
 }
 
@@ -329,6 +368,7 @@ static int compute_net_inefficiency_target(struct net_stats stats) {
 
 static void run_tuning_algorithm(int signal) {
 	int err = 0;
+	printf("Running tuning algorithm\n");
 	if(prev_stats == NULL) {
 		int inefficiency_budget;
 		err = read_inefficiency_budget(&inefficiency_budget);
@@ -382,6 +422,8 @@ int tuning_library_init() {
 	bzero(path, 64);
 	snprintf(path, 64, "/proc/%d/" POWER_AGILE_TASK_STATS, my_pid);
 	task_stats_path = path;
+
+	read_power_agile_components();
 
 	return 0;
 }
