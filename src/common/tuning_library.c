@@ -34,7 +34,7 @@ enum COMPONENT {
 };
 
 struct component_inefficiency {
-	unsigned int values[NR_COMPONENTS];
+	int values[NR_COMPONENTS];
 };
 
 struct base_stats {
@@ -379,6 +379,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 
 	component_inefficiency->values[NET] = 1000;
 
+	if()
 	while(1) {
 		int lhs = (component_inefficiency->values[CPU] * stats->cpu.cpu_emin) +
 				(component_inefficiency->values[MEM] * stats->mem.mem_emin) + (component_inefficiency->values[NET] * stats->net.net_emin);
