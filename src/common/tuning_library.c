@@ -51,6 +51,7 @@ struct cpu_stats {
 	u32 cpu_inefficiency;
 	u32 cpu_achieved_inefficiency;
 	u32 cpu_max_inefficiency;
+	u64 cpu_emin;
 };
 
 struct mem_stats {
@@ -64,10 +65,12 @@ struct mem_stats {
 	u32 mem_inefficiency;
 	u32 mem_achieved_inefficiency;
 	u32 mem_max_inefficiency;
+	u64 mem_emin;
 };
 
 struct net_stats {
 	u32 net_inefficiency;
+	u64 net_emin;
 };
 
 struct stats {
@@ -338,31 +341,42 @@ static inline void schedule() {
 	setitimer(ITIMER_REAL, &timer, NULL);
 }
 
+static void compute_inefficiency_targets(struct stats *stats, struct stats *prev, struct component_inefficiency *component_inefficiency) {
+	u64 total_time		= stats->cpu.cpu_total_time - prev_stats->cpu.cpu_total_time;
 
+	u64 cpu_idle_time	= stats->cpu.cpu_idle_time  - prev_stats->cpu.cpu_idle_time;
+	u64 cpu_busy_time	= total_time - cpu_idle_time;
 
-static int compute_cpu_inefficiency_target(struct cpu_stats stats) {
-	double busy_percentage = 100 - ((stats.cpu_idle_time / (double) stats.cpu_total_time) * 100);
+	u64 mem_busy_time	= total_time - (stats->mem.mem_active_time - prev_stats->mem.mem_active_time);
 
-//	We apply the busy percentage only if it is greater than the up threshold or lower than the down threshold.
-//	If this condition was not being checked, then what we would see is a jump to some frequency, then a load of 100%
-//	Which would result in a jump to the max frequency and then just alternation between the two states.
-		if(busy_percentage >= 80 || busy_percentage <= 20)
-			return cpu_max_inefficiency * busy_percentage / 100;
-		return stats.cpu_inefficiency;
-}
+	printf("total time    :%llu\n", total_time);
+	printf("cpu busy_time :%llu\n", cpu_busy_time);
+	printf("mem busy time :%llu\n", mem_busy_time);
 
-static int compute_mem_inefficiency_target(struct mem_stats stats, u64 total_time) {
-	double busy_percentage = 100 - ((stats.mem_active_time / (double) total_time) * 100);
-//	We apply the busy percentage only if it is greater than the up threshold or lower than the down threshold.
-//	If this condition was not being checked, then what we would see is a jump to some frequency, then a load of 100%
-//	Which would result in a jump to the max frequency and then just alternation between the two states.
-	if(busy_percentage >= 60 || busy_percentage <= 20)
-		return mem_max_inefficiency * busy_percentage / 100;
-	return stats.mem_inefficiency;
-}
+	int inefficiency_budget;
+	read_inefficiency_budget(&inefficiency_budget);
 
-static int compute_net_inefficiency_target(struct net_stats stats) {
-	return stats.net_inefficiency;
+	u64 total_budget = (stats->cpu.cpu_emin + stats->mem.mem_emin + stats->net.net_emin) * inefficiency_budget;
+	printf("Total budget  :%llu\n", total_budget);
+
+	component_inefficiency[CPU].inefficiency = (cpu_busy_time / (double) total_time) * cpu_max_inefficiency;
+	component_inefficiency[CPU].inefficiency = component_inefficiency[CPU].inefficiency < 1000 ? 1000 : component_inefficiency[CPU].inefficiency;
+
+	component_inefficiency[MEM].inefficiency = (mem_busy_time / (double) total_time) * mem_max_inefficiency;
+	component_inefficiency[MEM].inefficiency = component_inefficiency[MEM].inefficiency < 1000 ? 1000 : component_inefficiency[MEM].inefficiency;
+
+	component_inefficiency[NET].inefficiency = 1000;
+
+	while(1) {
+		int lhs = (component_inefficiency[CPU].inefficiency * stats->cpu.cpu_emin) +
+				(component_inefficiency[MEM].inefficiency * stats->mem.mem_emin) + (component_inefficiency[NET].inefficiency * stats->net.net_emin);
+		if(lhs > total_budget) {
+			component_inefficiency[CPU].inefficiency -= 10;
+			component_inefficiency[MEM].inefficiency -= 10;
+		}
+		else if(lhs <= total_budget)
+			break;
+	}
 }
 
 static void run_tuning_algorithm(int signal) {
@@ -373,7 +387,9 @@ static void run_tuning_algorithm(int signal) {
 		err = read_inefficiency_budget(&inefficiency_budget);
 		if(err)
 			return;
+
 		struct component_inefficiency component_inefficiency[3];
+
 		component_inefficiency[0].component = CPU;
 		component_inefficiency[0].inefficiency	= inefficiency_budget;
 		component_inefficiency[1].component = MEM;
@@ -389,9 +405,7 @@ static void run_tuning_algorithm(int signal) {
 		stats = malloc(sizeof(struct stats));
 		read_stats(stats);
 		struct component_inefficiency component_inefficiency[3];
-		component_inefficiency[0].inefficiency = compute_cpu_inefficiency_target(stats->cpu);
-		component_inefficiency[1].inefficiency = compute_mem_inefficiency_target(stats->mem, stats->cpu.cpu_total_time);
-		component_inefficiency[2].inefficiency = compute_net_inefficiency_target(stats->net);
+		compute_inefficiency_targets(stats, prev_stats, component_inefficiency);
 		write_controller(component_inefficiency);
 		free(prev_stats);
 		prev_stats = stats;
