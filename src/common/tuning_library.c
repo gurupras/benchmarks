@@ -26,17 +26,12 @@ typedef unsigned int u32;
 #define POWER_AGILE_TASK_STATS				"power_agile_task_stats"
 
 
-static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
-static unsigned int cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency;
-
 enum COMPONENT {
 	CPU,
 	MEM,
 	NET,
 	NR_COMPONENTS,
 };
-
-static const char *components_str[] = {"cpu", "mem", "net"};
 
 struct component_inefficiency {
 	enum COMPONENT component;
@@ -88,8 +83,12 @@ static char *task_stats_path;
 
 static struct stats *prev_stats;
 static unsigned int is_tuning_disabled = 0;
-static unsigned int interval = 100;	//in us
+static unsigned int interval = 50 * 1000;	//in us
 static pid_t my_pid = -1;
+
+static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
+static unsigned int cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency;
+static const char *components_str[] = {"cpu", "mem", "net"};
 
 void tuning_library_set_interval(unsigned int val) {
 	interval = val;
