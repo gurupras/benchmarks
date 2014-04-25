@@ -179,20 +179,6 @@ static void calculate_mem_frequency(int loops)
 	printf("memBmark: Obtained end time.. \n");
 }
 
-static void dummy_mem_frequency_test_run()
-{
-	int i;
-
-	memArrayCopy = memArray;
-
-	asm volatile("dummy_memory_loop_start: nop");
-
-	for(i=0; i<5; i++) {
-		memfreq_test_loop();
-	}
-	asm volatile("dummy_memory_loop_finish: nop");
-}
-
 void mem_init() {
 	int i;
 
