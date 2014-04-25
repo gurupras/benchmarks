@@ -5,7 +5,7 @@ MAKEFLAGS = --no-builtin-rules
 
 LIBS     = -L. -lrt
 
-MODULES=common cpu mem io microbench
+MODULES=common cpu mem io microbench tuninglibrary
 SOURCE_DIRS=$(addprefix src/, $(MODULES))
 BUILD_DIR=build/
 INCLUDE=src/include
@@ -24,12 +24,18 @@ host : CROSS=
 arm  : CROSS=arm-none-linux-gnueabi-
 arm  : CFLAGS+= -D ARM
 
-host arm : built-in.o main.o
+host arm : tuninglibrary.o built-in.o main.o
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
 
-built-in.o : common.o perf.o tuning_library.o cpu.o mem.o io.o micro_benchmark.o
+built-in.o : common.o perf.o cpu.o mem.o io.o micro_benchmark.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
 
+tuninglibrary.o : power_model.o tuning_library.o
+	$(addprefix $(CROSS), ld) -r $^ -o $@
+	
+power_model.o : power_model_cpu.o power_model_mem.o
+	$(addprefix $(CROSS), ld) -r $^ -o $@
+	
 %.o : %.c
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c $< -o $@
 

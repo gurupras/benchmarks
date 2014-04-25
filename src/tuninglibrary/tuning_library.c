@@ -18,9 +18,6 @@
 #include <errno.h>
 #include <fcntl.h>
 
-typedef unsigned long long u64;
-typedef unsigned int u32;
-
 #define POWER_AGILE_INEFFICIENCY_BUDGET 	"power_agile_task_inefficiency_budget"
 #define POWER_AGILE_CONTROLLER				"power_agile_controller"
 #define POWER_AGILE_TASK_STATS				"power_agile_task_stats"
