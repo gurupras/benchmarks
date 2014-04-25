@@ -197,6 +197,7 @@ static int read_stats(struct stats *stats) {
 	str = strsep(&ptr, " ");
 	stats->base.kernel_cycles				= strtoull(str, NULL, 0);
 
+//	6
 
 //	CPU STATS
 	if(is_cpu_tunable) {
@@ -221,6 +222,9 @@ static int read_stats(struct stats *stats) {
 		str = strsep(&ptr, " ");
 		stats->cpu.cpu_emin						= strtoull(str, NULL, 0);
 	}
+
+//	13
+
 
 //	MEM STATS
 	if(is_mem_tunable) {
@@ -264,6 +268,8 @@ static int read_stats(struct stats *stats) {
 		stats->mem.mem_emin						= strtoull(str, NULL, 0);
 	}
 
+//	26
+
 //	NET STATS
 	if(is_net_tunable) {
 		str = strsep(&ptr, " ");
@@ -272,6 +278,8 @@ static int read_stats(struct stats *stats) {
 		str = strsep(&ptr, " ");
 		stats->net.net_emin						= strtoull(str, NULL, 0);
 	}
+
+//	28
 
 	return 0;
 }
