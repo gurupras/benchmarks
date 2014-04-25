@@ -87,7 +87,7 @@ static char *task_stats_path;
 
 static struct stats *prev_stats = NULL;
 static unsigned int is_tuning_disabled = 0;
-static unsigned int interval = 50 * 1000;	//in us
+static unsigned int interval = 100 * 1000;	//in us
 static pid_t my_pid = -1;
 
 static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
@@ -359,30 +359,33 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	u64 cpu_idle_time	= stats->cpu.cpu_idle_time  - prev_stats->cpu.cpu_idle_time;
 	u64 cpu_busy_time	= total_time - cpu_idle_time;
 
-	u64 mem_busy_time	= total_time - (stats->mem.mem_active_time - prev_stats->mem.mem_active_time);
-
-	printf("total time    :%llu\n", total_time);
-	printf("cpu busy_time :%llu\n", cpu_busy_time);
-	printf("mem busy time :%llu\n", mem_busy_time);
+	u64 mem_busy_time	= (stats->mem.mem_active_time - prev_stats->mem.mem_active_time);
 
 	int inefficiency_budget;
 	read_inefficiency_budget(&inefficiency_budget);
 
-	u64 total_budget = (stats->cpu.cpu_emin + stats->mem.mem_emin + stats->net.net_emin) * inefficiency_budget;
-	printf("Total budget  :%llu\n", total_budget);
+	u64 total_budget = (stats->cpu.cpu_emin + stats->mem.mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
+	printf("Total budget               :%llu\n", total_budget);
 
-	component_inefficiency->values[CPU] = (cpu_busy_time / (double) total_time) * cpu_max_inefficiency;
+	double cpu_load = ((double) cpu_busy_time / (double) total_time);
+	printf("CPU load                   :%f\n", cpu_load);
+	component_inefficiency->values[CPU] = cpu_load * cpu_max_inefficiency;
 	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] < 1000 ? 1000 : component_inefficiency->values[CPU];
-
-	component_inefficiency->values[MEM] = (mem_busy_time / (double) total_time) * mem_max_inefficiency;
+	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_inefficiency->values[CPU];
+	printf("CPU inefficiency           :%d\n", component_inefficiency->values[CPU]);
+	double mem_load = ((double) mem_busy_time / (double) total_time);
+	printf("MEM load                   :%f\n", mem_load);
+	component_inefficiency->values[MEM] = mem_load * mem_max_inefficiency;
 	component_inefficiency->values[MEM] = component_inefficiency->values[MEM] < 1000 ? 1000 : component_inefficiency->values[MEM];
-
+	component_inefficiency->values[MEM] = component_inefficiency->values[MEM] > cpu_max_inefficiency ? cpu_max_inefficiency : component_inefficiency->values[MEM];
+	printf("MEM inefficiency           :%d\n", component_inefficiency->values[MEM]);
 	component_inefficiency->values[NET] = 1000;
 
-	if()
 	while(1) {
 		int lhs = (component_inefficiency->values[CPU] * stats->cpu.cpu_emin) +
-				(component_inefficiency->values[MEM] * stats->mem.mem_emin) + (component_inefficiency->values[NET] * stats->net.net_emin);
+				  (component_inefficiency->values[MEM] * stats->mem.mem_emin) +
+				  (component_inefficiency->values[NET] * stats->net.net_emin);
+
 		if(lhs > total_budget) {
 			component_inefficiency->values[CPU] -= 100;
 			if(component_inefficiency->values[CPU] < 1000)
@@ -402,7 +405,6 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 
 static void run_tuning_algorithm(int signal) {
 	int err = 0;
-	printf("Running tuning algorithm\n");
 	if(prev_stats == NULL) {
 		int inefficiency_budget;
 		err = read_inefficiency_budget(&inefficiency_budget);
