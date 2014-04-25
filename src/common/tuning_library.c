@@ -133,6 +133,7 @@ static int read_controller(struct component_inefficiency *map) {
 	ptr = strsep(&tmp, " ");
 	map->values[NET] = atoi(ptr);
 
+	printf("Controller MAX inefficiencies  :%d %d %d\n", map->values[CPU], map->values[MEM], map->values[NET]);
 	return 0;
 }
 
@@ -398,6 +399,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	u64 total_budget = (stats->cpu.cpu_emin + stats->mem.mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
 	printf("Emins : %llu %llu %llu\n", stats->cpu.cpu_emin, stats->mem.mem_emin, stats->net.net_emin);
 	printf("Total budget               :%llu\n", total_budget);
+	printf("Quantum time(clock)        :%llu\n", quantum_time);
+	printf("Total time(diff)           :%llu\n", stats->cpu.cpu_total_time - prev_stats->cpu.cpu_total_time);
 
 	double cpu_load = ((double) cpu_busy_time / (double) quantum_time);
 	printf("CPU load                   :%f\n", cpu_load);
