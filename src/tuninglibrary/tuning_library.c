@@ -6,6 +6,8 @@
  */
 
 #include "tuning_library.h"
+#include "power_model_cpu.h"
+#include "power_model_mem.h"
 
 #include <time.h>
 #include <unistd.h>
@@ -22,6 +24,7 @@
 #define POWER_AGILE_CONTROLLER				"power_agile_controller"
 #define POWER_AGILE_TASK_STATS				"power_agile_task_stats"
 
+#define DIFF_STATS(stat, prev_stat, field) (stat.field - prev_stat.field)
 
 enum COMPONENT {
 	CPU,
@@ -393,19 +396,30 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	u64 quantum_time	= cur_time - prev_stats->cur_time;
 	stats->cur_time		= cur_time;
 
-	u64 cpu_idle_time	= stats->cpu.cpu_idle_time  - prev_stats->cpu.cpu_idle_time;
+	u64 cpu_idle_time	= DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time);
 	u64 cpu_busy_time	= cur_time - cpu_idle_time;
 
-	u64 mem_busy_time	= (stats->mem.mem_active_time - prev_stats->mem.mem_active_time);
+	u64 mem_active_time	= DIFF_STATS(stats->mem, prev_stats->mem, mem_active_time);
 
 	int inefficiency_budget;
 	read_inefficiency_budget(&inefficiency_budget);
 
-	u64 total_budget = (stats->cpu.cpu_emin + stats->mem.mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
-	printf("Emins : %llu %llu %llu\n", stats->cpu.cpu_emin, stats->mem.mem_emin, stats->net.net_emin);
+	u64 cpu_emin		= compute_cpu_emin(DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time));
+	u64 mem_emin		= compute_mem_emin(
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_actpreread_events),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_actprewrite_events),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_reads),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_writes),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_refresh_events),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_active_time),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_precharge_time)
+			);
+	u64 total_budget = (cpu_emin + mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
+
+	printf("Emins : %llu %llu %llu\n", cpu_emin, mem_emin, stats->net.net_emin);
 	printf("Total budget               :%llu\n", total_budget);
 	printf("Quantum time(clock)        :%llu\n", quantum_time);
-	printf("Total time(diff)           :%llu\n", stats->cpu.cpu_total_time - prev_stats->cpu.cpu_total_time);
+	printf("Total time(diff)           :%llu\n", DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_total_time));
 
 	double cpu_load = ((double) cpu_busy_time / (double) quantum_time);
 	printf("CPU load                   :%f\n", cpu_load);
@@ -413,7 +427,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] < 1000 ? 1000 : component_inefficiency->values[CPU];
 	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_inefficiency->values[CPU];
 	printf("CPU inefficiency           :%d\n", component_inefficiency->values[CPU]);
-	double mem_load = ((double) mem_busy_time / (double) quantum_time);
+	double mem_load = ((double) mem_active_time / (double) quantum_time);
 	printf("MEM load                   :%f\n", mem_load);
 	component_inefficiency->values[MEM] = mem_load * mem_max_inefficiency;
 	component_inefficiency->values[MEM] = component_inefficiency->values[MEM] < 1000 ? 1000 : component_inefficiency->values[MEM];
