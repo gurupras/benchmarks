@@ -14,6 +14,7 @@
 
 static int is_finished = 0;
 static int is_tuning_enabled = 0;
+static int budget;
 
 static u64 num_loops;
 
@@ -34,6 +35,7 @@ static void usage(char *error) {
 //			"    -d <n>    : Set stride length to <n> bytes\n"
 			"    -p        : Enable performance counter accounting\n"
 			"    -u        : Enable the power-agile tuning library\n"
+			"    -b        : Assign inefficiency budget\n"
 			"\nNOTE:\n"
 			"-n must be set. \n"
 			"If unset, the program terminates as there is no break condition\n"
@@ -46,7 +48,7 @@ static void usage(char *error) {
 static int parse_opts(int argc, char **argv) {
 	int opt;
 
-	while( (opt = getopt(argc, argv, "t:n:d:hlspu")) != -1) {
+	while( (opt = getopt(argc, argv, "t:n:d:b:hlspu")) != -1) {
 		switch(opt) {
 		case ':' :
 			usage("missing parameter value");
@@ -82,6 +84,9 @@ static int parse_opts(int argc, char **argv) {
 			break;
 		case 'u' :
 			is_tuning_enabled = 1;
+			break;
+		case 'b' :
+			budget = atoi(optarg);
 			break;
 		default :
 		case '?' :
@@ -237,6 +242,7 @@ static int run_bench_mem(int argc, char **argv) {
 	mem_init();
 	if(is_tuning_enabled) {
 		tuning_library_init();
+		tuning_library_set_budget(budget);
 		tuning_library_start();
 	}
 

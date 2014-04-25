@@ -79,9 +79,10 @@ struct stats {
 	struct cpu_stats cpu;
 	struct mem_stats mem;
 	struct net_stats net;
+	u64 cur_time;
 };
 
-static char *inefficiency_path;
+static char *inefficiency_budget_path;
 static char *controller_path;
 static char *task_stats_path;
 
@@ -93,6 +94,14 @@ static pid_t my_pid = -1;
 static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
 static unsigned int cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency;
 static const char *components_str[] = {"cpu", "mem", "net"};
+
+
+static inline u64 get_process_time(void) {
+	struct timespec ts;
+
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+	return ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+}
 
 void tuning_library_set_interval(unsigned int val) {
 	interval = val;
@@ -286,7 +295,7 @@ static int write_stats(char *buf) {
 static int read_inefficiency_budget(int *budget) {
 	int err = 0;
 	char buf[64];
-	int fd = open(inefficiency_path, O_RDONLY);
+	int fd = open(inefficiency_budget_path, O_RDONLY);
 	if(fd < 0) {
 		perror("Could not open inefficiency_budget\n");
 		return fd;
@@ -299,6 +308,26 @@ static int read_inefficiency_budget(int *budget) {
 	close(fd);
 
 	*budget = atoi(buf);
+	return 0;
+}
+
+static int write_inefficiency_budget(int budget) {
+	int err = 0;
+	char buf[64];
+	int fd = open(inefficiency_budget_path, O_WRONLY);
+	if(fd < 0) {
+		perror("Could not open inefficiency_budget\n");
+		return fd;
+	}
+	bzero(buf, sizeof buf);
+	sprintf(buf, "%d\n", budget);
+	err = write(fd, buf, strlen(buf));
+	if(err < 0) {
+		perror("Unable to write inefficiency_budget\n");
+		return err;
+	}
+	close(fd);
+
 	return 0;
 }
 
@@ -354,10 +383,12 @@ static inline void schedule() {
 }
 
 static void compute_inefficiency_targets(struct stats *stats, struct stats *prev, struct component_inefficiency *component_inefficiency) {
-	u64 total_time		= stats->cpu.cpu_total_time - prev_stats->cpu.cpu_total_time;
+	u64 cur_time		= get_process_time();
+	u64 quantum_time	= cur_time - prev_stats->cur_time;
+	stats->cur_time		= cur_time;
 
 	u64 cpu_idle_time	= stats->cpu.cpu_idle_time  - prev_stats->cpu.cpu_idle_time;
-	u64 cpu_busy_time	= total_time - cpu_idle_time;
+	u64 cpu_busy_time	= cur_time - cpu_idle_time;
 
 	u64 mem_busy_time	= (stats->mem.mem_active_time - prev_stats->mem.mem_active_time);
 
@@ -365,15 +396,16 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	read_inefficiency_budget(&inefficiency_budget);
 
 	u64 total_budget = (stats->cpu.cpu_emin + stats->mem.mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
+	printf("Emins : %llu %llu %llu\n", stats->cpu.cpu_emin, stats->mem.mem_emin, stats->net.net_emin);
 	printf("Total budget               :%llu\n", total_budget);
 
-	double cpu_load = ((double) cpu_busy_time / (double) total_time);
+	double cpu_load = ((double) cpu_busy_time / (double) quantum_time);
 	printf("CPU load                   :%f\n", cpu_load);
 	component_inefficiency->values[CPU] = cpu_load * cpu_max_inefficiency;
 	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] < 1000 ? 1000 : component_inefficiency->values[CPU];
 	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_inefficiency->values[CPU];
 	printf("CPU inefficiency           :%d\n", component_inefficiency->values[CPU]);
-	double mem_load = ((double) mem_busy_time / (double) total_time);
+	double mem_load = ((double) mem_busy_time / (double) quantum_time);
 	printf("MEM load                   :%f\n", mem_load);
 	component_inefficiency->values[MEM] = mem_load * mem_max_inefficiency;
 	component_inefficiency->values[MEM] = component_inefficiency->values[MEM] < 1000 ? 1000 : component_inefficiency->values[MEM];
@@ -444,7 +476,7 @@ int tuning_library_init() {
 	char *path = malloc(sizeof(char) * 64);
 	bzero(path, 64);
 	snprintf(path, 64, "/proc/%d/" POWER_AGILE_INEFFICIENCY_BUDGET, my_pid);
-	inefficiency_path = path;
+	inefficiency_budget_path = path;
 
 	path = malloc(sizeof(char) * 64);
 	bzero(path, 64);
@@ -468,4 +500,8 @@ void tuning_library_start() {
 
 void tuning_library_stop() {
 	is_tuning_disabled = 1;
+}
+
+void tuning_library_set_budget(int val) {
+	write_inefficiency_budget(val);
 }
