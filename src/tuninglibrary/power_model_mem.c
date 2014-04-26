@@ -229,7 +229,7 @@ u64 compute_mem_emin(u64 actpreread_events, u64 actprewrite_events,u64 num_reads
 	
 	freq = minMemFreq;//emin is always at minMemFreq
 	for(freq=minMemFreq; freq<=maxMemFreq; freq+=memfStep) {
-		scale_mem_perf_power_model(freq);
+///		scale_mem_perf_power_model(freq);
 		active_time_local =0;
 
 		//scaling performance
@@ -267,6 +267,8 @@ u64 compute_mem_energy(u64 actpreread_events,u64  actprewrite_events,u64 reads, 
 	u64 energy=0;
 	u64 refresh_energy, read_energy, write_energy, background_energy;
 	u64 read_precharge_energy, read_burst_energy, write_precharge_energy, write_burst_energy;
+
+	scale_mem_perf_power_model(freq);
 
 	//calculate refresh energy
 	refresh_energy = refreshes * (IDD5B - IDD3N) * tRFC * Vdd; // c * mA * ps * mV

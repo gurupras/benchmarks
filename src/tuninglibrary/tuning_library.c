@@ -405,6 +405,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 
 	u64 mem_busy_time	= DIFF_STATS(stats->mem, prev_stats->mem, mem_busy_time);
 
+	u64 freq, volt, cpu_energy, mem_energy;
+	u64 target_cpu_energy, target_mem_energy, target_cpu_frequency, target_mem_frequency;
 	int inefficiency_budget;
 	read_inefficiency_budget(&inefficiency_budget);
 
@@ -463,6 +465,38 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 		if(component_inefficiency->values[CPU] == 1000 && component_inefficiency->values[MEM] == 1000 && component_inefficiency->values[NET] == 1000)
 			break;
 	}
+
+	// Best frequency matching target cpu inefficiency
+	target_cpu_energy = component_inefficiency->values[CPU] * cpu_emin;
+	for(freq=CPUmaxFreq, volt=CPUmaxVolt; freq >=CPUminFreq; freq-=CPUfStep, volt-=CPUVStep ) {
+		cpu_energy = compute_cpu_energy (DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time), freq, volt);
+		if(cpu_energy < target_cpu_energy)
+			break;
+	}
+	if(freq >= CPUminFreq)
+		target_cpu_frequency = freq;
+	else
+		target_cpu_frequency = CPUminFreq;
+
+	//Best frequency matching target mem inefficiency
+	target_mem_energy = component_inefficiency->values[MEM] * cpu_emin;
+	for(freq=maxMemFreq; freq >=minMemFreq; freq -=memfStep) {
+		mem_energy = compute_mem_energy(
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_actpreread_events),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_actprewrite_events),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_reads),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_writes),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_refresh_events),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_active_time),
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_precharge_time),
+			freq);
+		if(mem_energy < target_mem_energy)
+			break;
+	}
+	if(freq >= minMemFreq)
+		target_mem_frequency = freq;
+	else
+		target_mem_frequency = minMemFreq;
 }
 
 static void run_tuning_algorithm(int signal) {
@@ -488,6 +522,7 @@ static void run_tuning_algorithm(int signal) {
 		read_stats(stats);
 		struct component_inefficiency component_inefficiency;
 		compute_inefficiency_targets(stats, prev_stats, &component_inefficiency);
+
 		write_controller(&component_inefficiency);
 		free(prev_stats);
 		prev_stats = stats;
