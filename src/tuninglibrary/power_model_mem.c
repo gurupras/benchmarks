@@ -270,27 +270,27 @@ u64 compute_mem_energy(u64 actpreread_events,u64  actprewrite_events,u64 reads, 
 	//calculate refresh energy
 	refresh_energy = refreshes * (IDD5B - IDD3N) * tRFC * Vdd; // c * mA * ps * mV
 	refresh_energy = refresh_energy / 1000000000; //in nJ
-	//refresh_energy = refresh_energy / 1000;//in uJ
+	refresh_energy = refresh_energy / 1000;//in uJ
 
 	//calculate act/pre energy for reads
 	read_precharge_energy = actpreread_events * ((IDD0 * 4*tRP) - ((IDD3N * 3*tRP) + (IDD2N* tRP))) * Vdd; // mA * ps *mV
 	read_precharge_energy = read_precharge_energy / 1000000000; //in nJ
-	//read_precharge_energy = read_precharge_energy / 1000; //in uJ
+	read_precharge_energy = read_precharge_energy / 1000; //in uJ
 
 	//calculate act/pre energy for writes
 	write_precharge_energy = actprewrite_events * ((IDD0 * 4*tRP) - ((IDD3N * 3*tRP) + (IDD2N* tRP))) * Vdd;// mA * ps *mV
 	write_precharge_energy = write_precharge_energy / 1000000000; //in nJ
-	//write_precharge_energy = write_precharge_energy / 1000; //in uJ
+	write_precharge_energy = write_precharge_energy / 1000; //in uJ
      
 	//calculate read burst energy
 	read_burst_energy = reads * ((IDD4R - IDD3N)* tBURST) * Vdd; //mA * ps * mV
 	read_burst_energy = read_burst_energy / 1000000000; //in nJ
-	//read_burst_energy = read_burst_energy / 1000; //in uJ
+	read_burst_energy = read_burst_energy / 1000; //in uJ
 
 	//calculate write burst energy
 	write_burst_energy = writes * ((IDD4W - IDD3N)* tBURST) * Vdd; //mA * ps * mV
 	write_burst_energy = write_burst_energy / 1000000000; //in nJ
-	//write_burst_energy = write_burst_energy / 1000; //in uJ
+	write_burst_energy = write_burst_energy / 1000; //in uJ
 
 	//compute read energy
 	read_energy = read_precharge_energy + read_burst_energy; //in nJ

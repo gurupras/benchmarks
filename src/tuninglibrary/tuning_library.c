@@ -397,9 +397,9 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	stats->cur_time		= cur_time;
 
 	u64 cpu_idle_time	= DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time);
-	u64 cpu_busy_time	= cur_time - cpu_idle_time;
+	u64 cpu_busy_time	= quantum_time - cpu_idle_time;
 
-	u64 mem_active_time	= DIFF_STATS(stats->mem, prev_stats->mem, mem_active_time);
+	u64 mem_busy_time	= DIFF_STATS(stats->mem, prev_stats->mem, mem_busy_time);
 
 	int inefficiency_budget;
 	read_inefficiency_budget(&inefficiency_budget);
@@ -414,6 +414,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_active_time),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_precharge_time)
 			);
+	u64 net_emin  = 1;
 	u64 total_budget = (cpu_emin + mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
 
 	printf("Emins : %llu %llu %llu\n", cpu_emin, mem_emin, stats->net.net_emin);
@@ -423,11 +424,13 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 
 	double cpu_load = ((double) cpu_busy_time / (double) quantum_time);
 	printf("CPU load                   :%f\n", cpu_load);
+
+
 	component_inefficiency->values[CPU] = cpu_load * cpu_max_inefficiency;
 	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] < 1000 ? 1000 : component_inefficiency->values[CPU];
 	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_inefficiency->values[CPU];
 	printf("CPU inefficiency           :%d\n", component_inefficiency->values[CPU]);
-	double mem_load = ((double) mem_active_time / (double) quantum_time);
+	double mem_load = ((double) mem_busy_time / (double) quantum_time);
 	printf("MEM load                   :%f\n", mem_load);
 	component_inefficiency->values[MEM] = mem_load * mem_max_inefficiency;
 	component_inefficiency->values[MEM] = component_inefficiency->values[MEM] < 1000 ? 1000 : component_inefficiency->values[MEM];
@@ -436,9 +439,9 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	component_inefficiency->values[NET] = 1000;
 
 	while(1) {
-		int lhs = (component_inefficiency->values[CPU] * stats->cpu.cpu_emin) +
-				  (component_inefficiency->values[MEM] * stats->mem.mem_emin) +
-				  (component_inefficiency->values[NET] * stats->net.net_emin);
+		int lhs = (component_inefficiency->values[CPU] * cpu_emin) +
+				  (component_inefficiency->values[MEM] * mem_emin) +
+				  (component_inefficiency->values[NET] * net_emin);
 
 		if(lhs > total_budget) {
 			component_inefficiency->values[CPU] -= 100;
