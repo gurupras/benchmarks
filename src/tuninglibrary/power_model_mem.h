@@ -58,6 +58,6 @@ u64 convert_mem_inefficiency_to_energy(u64, u64, u64, u64, u64, u64, u64, int);
 struct memWorkStats normalize_mem_stats(u64, u64, u64, u64,u64,u64,u64);
 u64 map_mem_energy_to_frequency(u64, u64, u64, u64, u64, u64, u64, u32, u64);
 u64 map_mem_energy_to_frequency_close(u64, u64, u64, u64, u64, u64, u64, u32, u64);
-u64 compute_mem_emin(u64, u64, u64, u64, u64, u64, u64);
+u64 compute_mem_emin(u64, u64, u64, u64, u64, u64, u64, u32);
 u64 compute_mem_energy(u64, u64, u64,u64,u64,u64,u64,u64);
 void scale_mem_perf_power_model(u64);

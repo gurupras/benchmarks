@@ -37,7 +37,7 @@ u64 convert_mem_inefficiency_to_energy(u64 actpreread_events, u64 actprewrite_ev
 	u64 emin, energy;
 	//call compute_mem_emin();
 	// compute energy from ineff and emin
-	emin = compute_mem_emin(actpreread_events, actprewrite_events, reads, writes, refreshes, active_time, precharge_time);
+	emin = compute_mem_emin(actpreread_events, actprewrite_events, reads, writes, refreshes, active_time, precharge_time, mem_prev_freq);
 	energy= (emin * inefficiency) / 1000; //inefficiency is in milli
 	return energy;
 }
@@ -209,11 +209,12 @@ u64 map_mem_energy_to_frequency_close( u64 actpreread_events, u64 actprewrite_ev
 	return freq;
 }
 
-u64 compute_mem_emin(u64 actpreread_events, u64 actprewrite_events,u64 num_reads, u64 num_writes, u64 num_refreshes, u64 active_time, u64 precharge_time) {
+u64 compute_mem_emin(u64 actpreread_events, u64 actprewrite_events,u64 num_reads, u64 num_writes, u64 num_refreshes, u64 active_time, u64 precharge_time, u32 mem_freq) {
 	u64 freq, emin=0, fmin;
 	u64 energy, read_burst_time, total_time;
 	u64 active_time_local, read_burst_time_local;
 	
+	mem_prev_freq = mem_freq;
 	read_burst_time = ((num_reads+num_writes) * tBURSTSpec * memfSpec) / mem_prev_freq; //in ps
 	read_burst_time = read_burst_time / 1000; // in ns
 	//active time is samped based on current tick. So, if the sampling is in between

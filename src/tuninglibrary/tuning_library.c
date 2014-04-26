@@ -67,6 +67,7 @@ struct mem_stats {
 	u32 mem_achieved_inefficiency;
 	u32 mem_max_inefficiency;
 	u64 mem_emin;
+	u32 mem_freq;
 };
 
 struct net_stats {
@@ -266,9 +267,12 @@ static int read_stats(struct stats *stats) {
 
 		str = strsep(&ptr, " ");
 		stats->mem.mem_emin						= strtoull(str, NULL, 0);
+
+		str = strsep(&ptr, " ");
+		stats->mem.mem_freq						= strtoull(str, NULL, 0);
 	}
 
-//	26
+//	27
 
 //	NET STATS
 	if(is_net_tunable) {
@@ -279,7 +283,7 @@ static int read_stats(struct stats *stats) {
 		stats->net.net_emin						= strtoull(str, NULL, 0);
 	}
 
-//	28
+//	29
 
 	return 0;
 }
@@ -412,7 +416,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_writes),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_refresh_events),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_active_time),
-			DIFF_STATS(stats->mem, prev_stats->mem, mem_precharge_time)
+			DIFF_STATS(stats->mem, prev_stats->mem, mem_precharge_time),
+			stats->mem.mem_freq
 			);
 	u64 net_emin  = 1;
 	u64 total_budget = (cpu_emin + mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
