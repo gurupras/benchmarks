@@ -33,8 +33,9 @@ enum COMPONENT {
 	NR_COMPONENTS,
 };
 
-struct component_inefficiency {
-	int values[NR_COMPONENTS];
+struct component_settings {
+	int frequency[NR_COMPONENTS];
+	int inefficiency[NR_COMPONENTS];
 };
 
 struct base_stats {
@@ -108,7 +109,7 @@ void tuning_library_set_interval(unsigned int val) {
 	interval = val;
 }
 
-static int read_controller(struct component_inefficiency *map) {
+static int read_controller(struct component_settings *map) {
 	int err = 0;
 	int fd = open(controller_path, O_RDONLY);
 	if(fd < 0) {
@@ -126,19 +127,19 @@ static int read_controller(struct component_inefficiency *map) {
 	close(fd);
 
 	char *ptr = strsep(&tmp, " ");
-	map->values[CPU] = atoi(ptr);
+	map->inefficiency[CPU] = atoi(ptr);
 
 	ptr = strsep(&tmp, " ");
-	map->values[MEM] = atoi(ptr);
+	map->inefficiency[MEM] = atoi(ptr);
 
 	ptr = strsep(&tmp, " ");
-	map->values[NET] = atoi(ptr);
+	map->inefficiency[NET] = atoi(ptr);
 
-	printf("Controller MAX inefficiencies  :%d %d %d\n", map->values[CPU], map->values[MEM], map->values[NET]);
+	printf("Controller MAX inefficiencies  :%d %d %d\n", map->inefficiency[CPU], map->inefficiency[MEM], map->inefficiency[NET]);
 	return 0;
 }
 
-static int write_controller(struct component_inefficiency *map) {
+static int write_controller(struct component_settings *map) {
 	int err = 0;
 	int fd = open(controller_path, O_WRONLY);
 	if(fd < 0) {
@@ -148,9 +149,9 @@ static int write_controller(struct component_inefficiency *map) {
 	char buf[32];
 	bzero(buf, sizeof buf);
 
-	sprintf(buf, "%d", map->values[CPU]);
-	sprintf(buf, "%s %d", buf, map->values[MEM]);
-	sprintf(buf, "%s %d", buf, map->values[NET]);
+	sprintf(buf, "%d", map->frequency[CPU]);
+	sprintf(buf, "%s %d", buf, map->frequency[MEM]);
+	sprintf(buf, "%s %d", buf, map->frequency[NET]);
 	sprintf(buf, "%s\n", buf);
 
 	err = write(fd, buf, strlen(buf));
@@ -395,7 +396,7 @@ static inline void schedule() {
 	setitimer(ITIMER_REAL, &timer, NULL);
 }
 
-static void compute_inefficiency_targets(struct stats *stats, struct stats *prev, struct component_inefficiency *component_inefficiency) {
+static void compute_inefficiency_targets(struct stats *stats, struct stats *prev, struct component_settings *component_settings) {
 	u64 cur_time		= get_process_time();
 	u64 quantum_time	= cur_time - prev_stats->cur_time;
 	stats->cur_time		= cur_time;
@@ -433,41 +434,41 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	printf("CPU load                   :%f\n", cpu_load);
 
 
-	component_inefficiency->values[CPU] = cpu_load * cpu_max_inefficiency;
-	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] < 1000 ? 1000 : component_inefficiency->values[CPU];
-	component_inefficiency->values[CPU] = component_inefficiency->values[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_inefficiency->values[CPU];
-	printf("CPU inefficiency           :%d\n", component_inefficiency->values[CPU]);
+	component_settings->inefficiency[CPU] = cpu_load * cpu_max_inefficiency;
+	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] < 1000 ? 1000 : component_settings->inefficiency[CPU];
+	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[CPU];
+	printf("CPU inefficiency           :%d\n", component_settings->inefficiency[CPU]);
 	double mem_load = ((double) mem_busy_time / (double) quantum_time);
 	printf("MEM load                   :%f\n", mem_load);
-	component_inefficiency->values[MEM] = mem_load * mem_max_inefficiency;
-	component_inefficiency->values[MEM] = component_inefficiency->values[MEM] < 1000 ? 1000 : component_inefficiency->values[MEM];
-	component_inefficiency->values[MEM] = component_inefficiency->values[MEM] > cpu_max_inefficiency ? cpu_max_inefficiency : component_inefficiency->values[MEM];
-	printf("MEM inefficiency           :%d\n", component_inefficiency->values[MEM]);
-	component_inefficiency->values[NET] = 1000;
+	component_settings->inefficiency[MEM] = mem_load * mem_max_inefficiency;
+	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] < 1000 ? 1000 : component_settings->inefficiency[MEM];
+	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[MEM];
+	printf("MEM inefficiency           :%d\n", component_settings->inefficiency[MEM]);
+	component_settings->inefficiency[NET] = 1000;
 
 	while(1) {
-		int lhs = (component_inefficiency->values[CPU] * cpu_emin) +
-				  (component_inefficiency->values[MEM] * mem_emin) +
-				  (component_inefficiency->values[NET] * net_emin);
+		int lhs = (component_settings->inefficiency[CPU] * cpu_emin) +
+				  (component_settings->inefficiency[MEM] * mem_emin) +
+				  (component_settings->inefficiency[NET] * net_emin);
 
 		if(lhs > total_budget) {
-			component_inefficiency->values[CPU] -= 100;
-			if(component_inefficiency->values[CPU] < 1000)
-				component_inefficiency->values[CPU] = 1000;
+			component_settings->inefficiency[CPU] -= 100;
+			if(component_settings->inefficiency[CPU] < 1000)
+				component_settings->inefficiency[CPU] = 1000;
 
-			component_inefficiency->values[MEM] -= 100;
-			if(component_inefficiency->values[MEM] < 1000)
-				component_inefficiency->values[MEM] = 1000;
+			component_settings->inefficiency[MEM] -= 100;
+			if(component_settings->inefficiency[MEM] < 1000)
+				component_settings->inefficiency[MEM] = 1000;
 		}
 		else if(lhs <= total_budget)
 			break;
 
-		if(component_inefficiency->values[CPU] == 1000 && component_inefficiency->values[MEM] == 1000 && component_inefficiency->values[NET] == 1000)
+		if(component_settings->inefficiency[CPU] == 1000 && component_settings->inefficiency[MEM] == 1000 && component_settings->inefficiency[NET] == 1000)
 			break;
 	}
 
 	// Best frequency matching target cpu inefficiency
-	target_cpu_energy = component_inefficiency->values[CPU] * cpu_emin;
+	target_cpu_energy = component_settings->inefficiency[CPU] * cpu_emin;
 	for(freq=CPUmaxFreq, volt=CPUmaxVolt; freq >=CPUminFreq; freq-=CPUfStep, volt-=CPUVStep ) {
 		cpu_energy = compute_cpu_energy (DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time), freq, volt);
 		if(cpu_energy < target_cpu_energy)
@@ -479,7 +480,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 		target_cpu_frequency = CPUminFreq;
 
 	//Best frequency matching target mem inefficiency
-	target_mem_energy = component_inefficiency->values[MEM] * cpu_emin;
+	target_mem_energy = component_settings->inefficiency[MEM] * cpu_emin;
 	for(freq=maxMemFreq; freq >=minMemFreq; freq -=memfStep) {
 		mem_energy = compute_mem_energy(
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_actpreread_events),
@@ -497,36 +498,26 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 		target_mem_frequency = freq;
 	else
 		target_mem_frequency = minMemFreq;
+
+	component_settings->frequency[CPU]	= target_cpu_frequency;
+	component_settings->frequency[MEM]	= target_mem_frequency;
 }
 
 static void run_tuning_algorithm(int signal) {
 	int err = 0;
-	if(prev_stats == NULL) {
-		int inefficiency_budget;
-		err = read_inefficiency_budget(&inefficiency_budget);
-		if(err)
-			return;
+	struct stats *stats;
+	struct component_settings component_settings;
 
-		struct component_inefficiency component_inefficiency;
+	stats = malloc(sizeof(struct stats));
+	read_stats(stats);
+	compute_inefficiency_targets(stats, prev_stats, &component_settings);
 
-		component_inefficiency.values[CPU]	= inefficiency_budget;
-		component_inefficiency.values[MEM]	= inefficiency_budget;
-		component_inefficiency.values[NET]	= inefficiency_budget;
-		write_controller(&component_inefficiency);
-		prev_stats = malloc(sizeof(struct stats));
-		read_stats(prev_stats);
-	}
-	else {
-		struct stats *stats;
-		stats = malloc(sizeof(struct stats));
-		read_stats(stats);
-		struct component_inefficiency component_inefficiency;
-		compute_inefficiency_targets(stats, prev_stats, &component_inefficiency);
+	free(prev_stats);
+	prev_stats = stats;
 
-		write_controller(&component_inefficiency);
-		free(prev_stats);
-		prev_stats = stats;
-	}
+	write_controller(&component_settings);
+	write_stats("0");
+
 	schedule();
 }
 
@@ -554,6 +545,9 @@ int tuning_library_init() {
 	task_stats_path = path;
 
 	read_power_agile_components();
+
+	prev_stats = malloc(sizeof(struct stats));
+	bzero(prev_stats, sizeof(prev_stats));
 
 	return 0;
 }

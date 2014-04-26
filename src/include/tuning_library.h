@@ -8,6 +8,9 @@
 #ifndef TUNING_LIBRARY_H_
 #define TUNING_LIBRARY_H_
 
+#define unlikely(x)		__builtin_expect(!!(x), 0)
+#define likely(x)		__builtin_expect(!!(x), 1)
+
 int tuning_library_init(void);
 void tuning_library_start(void);
 void tuning_library_stop(void);
