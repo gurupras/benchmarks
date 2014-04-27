@@ -466,10 +466,12 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	printf("MEM busy time              :%llu\n", mem_busy_time);
 	printf("MEM reads                  :%llu\n", mem_reads);
 	printf("MEM writes                 :%llu\n", mem_writes);
-	printf("MEM load(+30%)              :%f\n", mem_load);
+	printf("MEM load(+30)              :%f\n", mem_load);
 	printf("MEM inefficiency           :%d\n", component_settings->inefficiency[MEM]);
 
 	component_settings->inefficiency[NET] = 1000;
+
+	double num_parts = component_settings->inefficiency[CPU] + component_settings->inefficiency[MEM];		//XXX:Add network
 
 	while(1) {
 		int lhs = (component_settings->inefficiency[CPU] * cpu_emin) +
@@ -477,11 +479,11 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 				  (component_settings->inefficiency[NET] * net_emin);
 
 		if(lhs > total_budget) {
-			component_settings->inefficiency[CPU] -= 100;
+			component_settings->inefficiency[CPU] -= (component_settings->inefficiency[CPU] / num_parts);
 			if(component_settings->inefficiency[CPU] < 1000)
 				component_settings->inefficiency[CPU] = 1000;
 
-			component_settings->inefficiency[MEM] -= 100;
+			component_settings->inefficiency[MEM] -= (component_settings->inefficiency[MEM] / num_parts);
 			if(component_settings->inefficiency[MEM] < 1000)
 				component_settings->inefficiency[MEM] = 1000;
 		}
