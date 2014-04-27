@@ -421,6 +421,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	u64 cpu_busy_time	= quantum_time - cpu_idle_time;
 
 	u64 mem_busy_time	= DIFF_STATS(stats->mem, prev_stats->mem, mem_busy_time);
+	u64 mem_reads		= DIFF_STATS(stats->mem, prev_stats->mem, mem_reads);
+	u64 mem_writes		= DIFF_STATS(stats->mem, prev_stats->mem, mem_writes);
 
 	u64 freq, volt, cpu_energy, mem_energy;
 	u64 target_cpu_energy, target_mem_energy, target_cpu_frequency, target_mem_frequency;
@@ -451,6 +453,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] < 1000 ? 1000 : component_settings->inefficiency[CPU];
 	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[CPU];
 	printf("CPU busy time              :%llu\n", cpu_busy_time);
+	printf("CPU idle time              :%llu\n", cpu_idle_time);
 	printf("CPU load                   :%f\n", cpu_load);
 	printf("CPU inefficiency           :%d\n", component_settings->inefficiency[CPU]);
 
@@ -459,6 +462,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] < 1000 ? 1000 : component_settings->inefficiency[MEM];
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[MEM];
 	printf("MEM busy time              :%llu\n", mem_busy_time);
+	printf("MEM reads                  :%llu\n", mem_reads);
+	printf("MEM writes                 :%llu\n", mem_writes);
 	printf("MEM load                   :%f\n", mem_load);
 	printf("MEM inefficiency           :%d\n", component_settings->inefficiency[MEM]);
 
