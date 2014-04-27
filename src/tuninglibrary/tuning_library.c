@@ -52,6 +52,7 @@ struct cpu_stats {
 	u32 cpu_achieved_inefficiency;
 	u32 cpu_max_inefficiency;
 	u64 cpu_emin;
+	u64 cpu_energy;
 };
 
 struct mem_stats {
@@ -69,6 +70,7 @@ struct mem_stats {
 	u32 mem_max_inefficiency;
 	u64 mem_emin;
 	u32 mem_freq;
+	u64 mem_energy;
 };
 
 struct net_stats {
@@ -90,7 +92,7 @@ static char *task_stats_path;
 
 static struct stats *prev_stats = NULL;
 static unsigned int is_tuning_disabled = 0;
-static unsigned int interval = 100 * 1000;	//in us
+static unsigned int interval = 300 * 1000;	//in us
 static pid_t my_pid = -1;
 
 static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
@@ -223,9 +225,12 @@ static int read_stats(struct stats *stats) {
 
 		str = strsep(&ptr, " ");
 		stats->cpu.cpu_emin						= strtoull(str, NULL, 0);
+
+		str = strsep(&ptr, " ");
+		stats->cpu.cpu_energy					= strtoull(str, NULL, 0);
 	}
 
-//	13
+//	14
 
 
 //	MEM STATS
@@ -271,9 +276,12 @@ static int read_stats(struct stats *stats) {
 
 		str = strsep(&ptr, " ");
 		stats->mem.mem_freq						= strtoull(str, NULL, 0);
+
+		str = strsep(&ptr, " ");
+		stats->mem.mem_energy					= strtoull(str, NULL, 0);
 	}
 
-//	27
+//	29
 
 //	NET STATS
 	if(is_net_tunable) {
@@ -284,7 +292,7 @@ static int read_stats(struct stats *stats) {
 		stats->net.net_emin						= strtoull(str, NULL, 0);
 	}
 
-//	29
+//	31
 
 	return 0;
 }
@@ -397,8 +405,10 @@ static inline void schedule() {
 }
 
 static void compute_inefficiency_targets(struct stats *stats, struct stats *prev, struct component_settings *component_settings) {
+	u64 quantum_time;
 	u64 cur_time		= get_process_time();
-	u64 quantum_time	= cur_time - prev_stats->cur_time;
+//	quantum_time		= cur_time - prev_stats->cur_time;
+	quantum_time		= stats->cpu.cpu_total_time;
 	stats->cur_time		= cur_time;
 
 	u64 cpu_idle_time	= DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time);
@@ -431,19 +441,21 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	printf("Total time(diff)           :%llu\n", DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_total_time));
 
 	double cpu_load = ((double) cpu_busy_time / (double) quantum_time);
-	printf("CPU load                   :%f\n", cpu_load);
-
-
 	component_settings->inefficiency[CPU] = cpu_load * cpu_max_inefficiency;
 	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] < 1000 ? 1000 : component_settings->inefficiency[CPU];
 	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[CPU];
+	printf("CPU busy time              :%llu\n", cpu_busy_time);
+	printf("CPU load                   :%f\n", cpu_load);
 	printf("CPU inefficiency           :%d\n", component_settings->inefficiency[CPU]);
+
 	double mem_load = ((double) mem_busy_time / (double) quantum_time);
-	printf("MEM load                   :%f\n", mem_load);
 	component_settings->inefficiency[MEM] = mem_load * mem_max_inefficiency;
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] < 1000 ? 1000 : component_settings->inefficiency[MEM];
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[MEM];
+	printf("MEM busy time              :%llu\n", mem_busy_time);
+	printf("MEM load                   :%f\n", mem_load);
 	printf("MEM inefficiency           :%d\n", component_settings->inefficiency[MEM]);
+
 	component_settings->inefficiency[NET] = 1000;
 
 	while(1) {
@@ -504,16 +516,15 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 }
 
 static void run_tuning_algorithm(int signal) {
-	int err = 0;
-	struct stats *stats;
+	struct stats stats;
 	struct component_settings component_settings;
 
-	stats = malloc(sizeof(struct stats));
-	read_stats(stats);
-	compute_inefficiency_targets(stats, prev_stats, &component_settings);
+	read_stats(&stats);
+	compute_inefficiency_targets(&stats, prev_stats, &component_settings);
 
-	free(prev_stats);
-	prev_stats = stats;
+	u64 cur_time = prev_stats->cur_time;
+	bzero(prev_stats, sizeof(struct stats));
+	prev_stats->cur_time = cur_time;
 
 	write_stats("0");
 	write_controller(&component_settings);
