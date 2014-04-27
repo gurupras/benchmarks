@@ -20,17 +20,20 @@ CC =gcc
 
 all : host
 
-host : CROSS=
-arm  : CROSS=arm-none-linux-gnueabi-
-arm  : CFLAGS+= -D ARM
+host    : CROSS=
+arm lib : CROSS=arm-none-linux-gnueabi-
+arm     : CFLAGS+= -D ARM
+lib     : CFLAGS+= -fpic -shared
 
 host arm : tuninglibrary.o built-in.o main.o
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
 
+lib : libtuning.so
+	
 built-in.o : common.o perf.o cpu.o mem.o io.o micro_benchmark.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
 
-tuninglibrary.o : power_model.o tuning_library.o
+libtuning.so : power_model.o tuning_library.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
 	
 power_model.o : power_model_cpu.o power_model_mem.o
@@ -41,4 +44,4 @@ power_model.o : power_model_cpu.o power_model_mem.o
 
 
 clean :
-	rm -rf *.o *.a $(PROG_NAME)
+	rm -rf *.o *.so *.a $(PROG_NAME)
