@@ -515,8 +515,9 @@ static void run_tuning_algorithm(int signal) {
 	free(prev_stats);
 	prev_stats = stats;
 
-	write_controller(&component_settings);
 	write_stats("0");
+	write_controller(&component_settings);
+
 
 	schedule();
 }
