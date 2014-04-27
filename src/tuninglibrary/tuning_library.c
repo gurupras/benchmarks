@@ -394,6 +394,7 @@ static int read_power_agile_components() {
 			net_max_inefficiency = atoi(strsep(&ptr, " "));
 		}
 	}
+	printf("MAX Inefficiencies :%u %u %u", cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency);
 	return 0;
 }
 
