@@ -480,7 +480,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	}
 
 	// Best frequency matching target cpu inefficiency
-	target_cpu_energy = component_settings->inefficiency[CPU] * cpu_emin;
+	target_cpu_energy = component_settings->inefficiency[CPU] * cpu_emin / 1000;	//inefficiency is currently in millis
 	for(freq=CPUmaxFreq, volt=CPUmaxVolt; freq >=CPUminFreq; freq-=CPUfStep, volt-=CPUVStep ) {
 		cpu_energy = compute_cpu_energy (DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time), freq, volt);
 		if(cpu_energy < target_cpu_energy)
@@ -492,7 +492,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 		target_cpu_frequency = CPUminFreq;
 
 	//Best frequency matching target mem inefficiency
-	target_mem_energy = component_settings->inefficiency[MEM] * cpu_emin;
+	target_mem_energy = component_settings->inefficiency[MEM] * cpu_emin / 1000;	//inefficiency is currently in millis
 	for(freq=maxMemFreq; freq >=minMemFreq; freq -=memfStep) {
 		mem_energy = compute_mem_energy(
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_actpreread_events),
