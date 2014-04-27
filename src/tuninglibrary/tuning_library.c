@@ -148,12 +148,18 @@ static int write_controller(struct component_settings *map) {
 		perror("Unable to open controller\n");
 		return fd;
 	}
-	char buf[32];
+	char buf[64];
 	bzero(buf, sizeof buf);
 
 	sprintf(buf, "%d", map->frequency[CPU]);
+	sprintf(buf, "%s %d", buf, map->inefficiency[CPU]);
+
 	sprintf(buf, "%s %d", buf, map->frequency[MEM]);
+	sprintf(buf, "%s %d", buf, map->inefficiency[MEM]);
+
 	sprintf(buf, "%s %d", buf, map->frequency[NET]);
+	sprintf(buf, "%s %d", buf, map->inefficiency[NET]);
+
 	sprintf(buf, "%s\n", buf);
 
 	err = write(fd, buf, strlen(buf));
