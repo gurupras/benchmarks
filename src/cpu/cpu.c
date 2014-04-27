@@ -9,6 +9,8 @@
 #include "include/perf.h"
 #include "include/tuning_library.h"
 
+extern volatile int tuning_library_is_app_finished;
+
 u64 end_number = ~0, current_number = 0, finish_number = -1;
 static int is_tuning_enabled = 0;
 static int budget;
@@ -236,6 +238,7 @@ static void timed_bench_cpu(u64 time) {
 		}
 		current_number += 2;
 	}
+	tuning_library_is_app_finished = 1;
 }
 
 struct benchmark cpu = {

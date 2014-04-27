@@ -18,6 +18,8 @@ static int budget;
 
 static u64 num_loops;
 
+extern volatile int tuning_library_is_app_finished;
+
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
 
@@ -237,6 +239,8 @@ static int run_bench_mem(int argc, char **argv) {
 	}
 
 	operation_run_mem(num_loops);
+
+	tuning_library_is_app_finished = 1;
 	return 0;
 }
 

@@ -11,6 +11,8 @@
 typedef unsigned long long u64;
 typedef unsigned int u32;
 
+extern volatile int tuning_library_is_app_finished;
+
 int tuning_library_init(void);
 void tuning_library_start(void);
 void tuning_library_stop(void);

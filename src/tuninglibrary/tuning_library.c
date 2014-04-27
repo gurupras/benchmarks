@@ -86,13 +86,15 @@ struct stats {
 	u64 cur_time;
 };
 
+volatile int tuning_library_is_app_finished;
+
 static char *inefficiency_budget_path;
 static char *controller_path;
 static char *task_stats_path;
 
 static struct stats *prev_stats = NULL;
 static unsigned int is_tuning_disabled = 0;
-static unsigned int interval = 300 * 1000;	//in us
+static unsigned int interval = 100 * 1000;	//in us
 static pid_t my_pid = -1;
 
 static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
@@ -507,7 +509,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 		target_cpu_frequency = CPUminFreq;
 
 	//Best frequency matching target mem inefficiency
-	target_mem_energy = component_settings->inefficiency[MEM] * cpu_emin / 1000;	//inefficiency is currently in millis
+	target_mem_energy = component_settings->inefficiency[MEM] * mem_emin / 1000;	//inefficiency is currently in millis
 	for(freq=maxMemFreq; freq >=minMemFreq; freq -=memfStep) {
 		mem_energy = compute_mem_energy(
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_actpreread_events),
@@ -544,8 +546,8 @@ static void run_tuning_algorithm(int signal) {
 	write_stats("0");
 	write_controller(&component_settings);
 
-
-	schedule();
+	if(!tuning_library_is_app_finished)
+		schedule();
 }
 
 int tuning_library_init() {
@@ -581,6 +583,7 @@ int tuning_library_init() {
 
 void tuning_library_start() {
 	is_tuning_disabled = 0;
+	tuning_library_is_app_finished = 0;
 	run_tuning_algorithm(0);
 }
 
