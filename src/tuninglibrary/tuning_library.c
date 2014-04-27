@@ -460,7 +460,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	double mem_load = ((double) mem_busy_time / (double) quantum_time);
 	component_settings->inefficiency[MEM] = mem_load * mem_max_inefficiency;
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] < 1000 ? 1000 : component_settings->inefficiency[MEM];
-	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[MEM];
+	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] > mem_max_inefficiency ? mem_max_inefficiency : component_settings->inefficiency[MEM];
 	printf("MEM busy time              :%llu\n", mem_busy_time);
 	printf("MEM reads                  :%llu\n", mem_reads);
 	printf("MEM writes                 :%llu\n", mem_writes);
