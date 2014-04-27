@@ -105,6 +105,10 @@ static int parse_opts(int argc, char **argv) {
 //		usage("No options specified\nTerminating program due to infinite loop!\n");
 //		panic(" ");
 //	}
+	if(budget == 0) {
+		usage("Must specify budget!\n");
+		panic(" ");
+	}
 
 	return 0;
 }

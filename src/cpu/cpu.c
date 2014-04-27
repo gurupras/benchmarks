@@ -11,6 +11,7 @@
 
 u64 end_number = ~0, current_number = 0, finish_number = -1;
 static int is_tuning_enabled = 0;
+static int budget;
 static volatile int is_finished = 0;
 static struct timespec sleep_interval = {0,0};
 static struct list *primes;
@@ -25,11 +26,12 @@ static void usage(char *error) {
 			"Benchmarks the CPU by running a primality test until conditions specified have been satisfied\n"
 			"\nOPTIONS:\n"
 			"    -h        : Print this help message\n"
-			"    -t <n>    : Specifies a time limit (in nanoseconds)\n"
+//			"    -t <n>    : Specifies a time limit (in nanoseconds)\n"
 			"    -s <n>    : Specifies an intermittent sleep interval\n"
 			"    -n <n>    : Specifies a number limit\n"
 			"    -p        : Enable performance counter accounting\n"
 			"    -u        : Enable the power-agile tuning library\n"
+			"    -b        : Assign inefficiency budget\n"
 			"\nNOTE:\n"
 			"At least one of -t or -n must be set. \n"
 			"If unset, the program terminates as there is no break condition\n"
@@ -77,6 +79,9 @@ static int parse_opts(int argc, char **argv) {
 		case 'u' :
 			is_tuning_enabled = 1;
 			break;
+		case 'b' :
+			budget = atoi(optarg);
+			break;
 		default :
 		case '?' :
 			usage("invalid command line argument");
@@ -86,6 +91,11 @@ static int parse_opts(int argc, char **argv) {
 
 	if(end_time == 0 && end_number == ~0) {
 		usage("No options specified\nTerminating program due to infinite loop!\n");
+		panic(" ");
+	}
+
+	if(budget == 0) {
+		usage("Must specify budget!\n");
 		panic(" ");
 	}
 
@@ -139,13 +149,18 @@ static inline int is_prime(int number) {
 
 
 static void init() {
-	if(periodic_perf)
+	signal(SIGALRM, alarm_handler);
+	if(periodic_perf) {
 		common_init();
+		signal(SIGUSR1, perf_handler);
+		perf_reset_stats();
+	}
 
 	init_list(primes);
 
 	if(is_tuning_enabled) {
 		tuning_library_init();
+		tuning_library_set_budget(budget);
 		tuning_library_start();
 	}
 }
@@ -187,11 +202,7 @@ static int run_bench_cpu(int argc, char **argv) {
 	parse_opts(argc, argv);
 	init();
 	is_finished = 0;
-	signal(SIGALRM, alarm_handler);
-	if(periodic_perf) {
-		signal(SIGUSR1, perf_handler);
-		perf_reset_stats();
-	}
+
 	setitimer(ITIMER_REAL, &timeout_timer, 0);
 	start_time = rdclock();
 	__bench_cpu_prime();
@@ -221,7 +232,6 @@ static void timed_bench_cpu(u64 time) {
 		is_prime(current_number);
 
 		if(unlikely(current_number + 2 >= end_number)) {
-			alarm_handler(SIGALRM);
 			break;
 		}
 		current_number += 2;
