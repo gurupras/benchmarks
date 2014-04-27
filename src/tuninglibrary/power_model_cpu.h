@@ -17,6 +17,13 @@ u64 cpuIdleTime;
 u64 time;
 };
 
+struct cpuEnergyFreq
+{
+u64 energy;
+u64 freq;
+u64 volt;
+};
+
 #define CPU_SLIDING_WINDOW_LENGTH 10
 #define CPU_NORMALIZATION_PERIOD 10000000	//10ms .. LUT is designed for this period
 
@@ -41,6 +48,6 @@ u64 time;
 u64 convert_cpu_inefficiency_to_energy(u64, u64, int);
 struct cpuWorkStats normalize_cpu_stats(u64, u64,u64);
 u64 map_cpu_energy_to_frequency(u64, u64, u64);
-u64 compute_cpu_emin(u64, u64);
+struct cpuEnergyFreq compute_cpu_emin(u64, u64);
 void create_cpu_energy_freq_lookup_table(void);
 u64 compute_cpu_energy(u64,u64,u64,u64);

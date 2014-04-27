@@ -92,13 +92,14 @@ static char *task_stats_path;
 
 static struct stats *prev_stats = NULL;
 static unsigned int is_tuning_disabled = 0;
-static unsigned int interval = 300 * 1000;	//in us
+static unsigned int interval = 100 * 1000;	//in us
 static pid_t my_pid = -1;
 
 static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
 static unsigned int cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency;
 static const char *components_str[] = {"cpu", "mem", "net"};
 
+u64 mem_curr_freq, mem_new_freq=800;
 
 static inline u64 get_process_time(void) {
 	struct timespec ts;
@@ -394,7 +395,7 @@ static int read_power_agile_components() {
 			net_max_inefficiency = atoi(strsep(&ptr, " "));
 		}
 	}
-	printf("MAX Inefficiencies :%u %u %u", cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency);
+	printf("MAX Inefficiencies :%u %u %u\n", cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency);
 	return 0;
 }
 
@@ -414,6 +415,7 @@ static inline void schedule() {
 static void compute_inefficiency_targets(struct stats *stats, struct stats *prev, struct component_settings *component_settings) {
 	u64 quantum_time;
 	u64 cur_time		= get_process_time();
+	mem_curr_freq = mem_new_freq;
 //	quantum_time		= cur_time - prev_stats->cur_time;
 	quantum_time		= stats->cpu.cpu_total_time;
 	stats->cur_time		= cur_time;
@@ -430,8 +432,14 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	int inefficiency_budget;
 	read_inefficiency_budget(&inefficiency_budget);
 
-	u64 cpu_emin		= compute_cpu_emin(DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time));
-	u64 mem_emin		= compute_mem_emin(
+	struct cpuEnergyFreq minCPUEnergyFreq;
+	minCPUEnergyFreq = compute_cpu_emin(DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time));
+	u64 cpu_emin		= minCPUEnergyFreq.energy;
+	u64 cpu_fmin		= minCPUEnergyFreq.freq;
+  	u64 cpu_vmin		= minCPUEnergyFreq.volt;
+
+	struct memEnergyFreq minMemEnergyFreq;
+	minMemEnergyFreq = compute_mem_emin(
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_actpreread_events),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_actprewrite_events),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_reads),
@@ -439,8 +447,10 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_refresh_events),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_active_time),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_precharge_time),
-			stats->mem.mem_freq
+			mem_curr_freq
 			);
+ 	u64 mem_emin	=minMemEnergyFreq.energy;
+ 	u64 mem_fmin	=minMemEnergyFreq.freq;
 	u64 net_emin  = 1;
 	u64 total_budget = (cpu_emin + mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
 
@@ -456,7 +466,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	printf("CPU busy time              :%llu\n", cpu_busy_time);
 	printf("CPU idle time              :%llu\n", cpu_idle_time);
 	printf("CPU load                   :%f\n", cpu_load);
-	printf("CPU inefficiency           :%d\n", component_settings->inefficiency[CPU]);
+	printf("CPU inefficiency (load)    :%d\n", component_settings->inefficiency[CPU]);
 
 	double mem_load = ((double) mem_busy_time / (double) quantum_time);
 	mem_load += 0.3;																//XXX: Hack
@@ -467,7 +477,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	printf("MEM reads                  :%llu\n", mem_reads);
 	printf("MEM writes                 :%llu\n", mem_writes);
 	printf("MEM load(+30)              :%f\n", mem_load);
-	printf("MEM inefficiency           :%d\n", component_settings->inefficiency[MEM]);
+	printf("MEM inefficiency (load)    :%d\n", component_settings->inefficiency[MEM]);
 
 	component_settings->inefficiency[NET] = 1000;
 
@@ -494,22 +504,21 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 			break;
 	}
 
+	printf("CPU target inefficiency:%d\t	MEM target inefficiency:%d\n",component_settings->inefficiency[CPU],component_settings->inefficiency[MEM] );
+
 	// Best frequency matching target cpu inefficiency
 	target_cpu_energy = component_settings->inefficiency[CPU] * cpu_emin / 1000;	//inefficiency is currently in millis
-	for(freq=CPUmaxFreq, volt=CPUmaxVolt; freq >=CPUminFreq; freq-=CPUfStep, volt-=CPUVStep ) {
+	for(freq=cpu_fmin, volt=cpu_vmin; freq <=CPUmaxFreq; freq+=CPUfStep, volt+=CPUVStep ) {
 		cpu_energy = compute_cpu_energy (DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time), freq, volt);
-		if(cpu_energy < target_cpu_energy)
+		if( target_cpu_energy < cpu_energy)
 			break;
 	}
-	if(freq >= CPUminFreq)
-		target_cpu_frequency = freq;
-	else
-		target_cpu_frequency = CPUminFreq;
+	if(freq > CPUminFreq) 
+		target_cpu_frequency = freq - CPUfStep;
 
 	//Best frequency matching target mem inefficiency
-	target_mem_energy = component_settings->inefficiency[MEM] * cpu_emin / 1000;	//inefficiency is currently in millis
-	for(freq=maxMemFreq; freq >=minMemFreq; freq -=memfStep) {
-		mem_energy = compute_mem_energy(
+	target_mem_energy = component_settings->inefficiency[MEM] * mem_emin / 1000;	//inefficiency is currently in millis
+	target_mem_frequency = map_mem_energy_to_frequency(
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_actpreread_events),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_actprewrite_events),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_reads),
@@ -517,17 +526,13 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_refresh_events),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_active_time),
 			DIFF_STATS(stats->mem, prev_stats->mem, mem_precharge_time),
-			freq);
-		if(mem_energy < target_mem_energy)
-			break;
-	}
-	if(freq >= minMemFreq)
-		target_mem_frequency = freq;
-	else
-		target_mem_frequency = minMemFreq;
+			mem_fmin,
+			target_mem_energy,
+			mem_curr_freq);
 
 	component_settings->frequency[CPU]	= target_cpu_frequency;
 	component_settings->frequency[MEM]	= target_mem_frequency;
+	mem_new_freq = target_mem_frequency;
 }
 
 static void run_tuning_algorithm(int signal) {

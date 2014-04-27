@@ -32,7 +32,7 @@ u32 minLatency= 4*tRP;
 u64 mem_prev_time, mem_time_curr;
 u64 mem_prev_pid=0xFFFF;
 u64 mem_prev_energy=0;
-
+/*
 u64 convert_mem_inefficiency_to_energy(u64 actpreread_events, u64 actprewrite_events, u64 reads, u64 writes, u64 refreshes, u64 active_time, u64 precharge_time, int inefficiency) {
 	u64 emin, energy;
 	//call compute_mem_emin();
@@ -41,13 +41,14 @@ u64 convert_mem_inefficiency_to_energy(u64 actpreread_events, u64 actprewrite_ev
 	energy= (emin * inefficiency) / 1000; //inefficiency is in milli
 	return energy;
 }
-
+*/
 //exhaustive search for frequency settings
-u64 map_mem_energy_to_frequency(u64 actpreread_events, u64 actprewrite_events, u64 num_reads, u64 num_writes, u64 num_refreshes, u64 active_time, u64 precharge_time, u32 inefficiency, u64 mem_energy_tgt) {
+u64 map_mem_energy_to_frequency(u64 actpreread_events, u64 actprewrite_events, u64 num_reads, u64 num_writes, u64 num_refreshes, u64 active_time, u64 precharge_time, u64 min_freq, u64 mem_energy_tgt, u64 mem_freq) {
 	u64 freq;
 	u64 energy, read_burst_time, total_time;
 	u64 active_time_local, read_burst_time_local;
 
+	mem_prev_freq = mem_freq;
 	read_burst_time = ((num_reads + num_writes) * tBURSTSpec * memfSpec) / mem_prev_freq; //in ps
 	read_burst_time = read_burst_time / 1000; // in ns
 
@@ -60,8 +61,7 @@ u64 map_mem_energy_to_frequency(u64 actpreread_events, u64 actprewrite_events, u
 		panic("read_burst_time > active_time \n");
 	}
 */
-	for(freq=minMemFreq; freq<=maxMemFreq; freq+=memfStep) {
-		scale_mem_perf_power_model(freq);
+	for(freq=min_freq; freq<=maxMemFreq; freq+=memfStep) {
 		active_time_local =0;
 
 		//scaling performance
@@ -209,11 +209,13 @@ u64 map_mem_energy_to_frequency_close( u64 actpreread_events, u64 actprewrite_ev
 	return freq;
 }
 
-u64 compute_mem_emin(u64 actpreread_events, u64 actprewrite_events,u64 num_reads, u64 num_writes, u64 num_refreshes, u64 active_time, u64 precharge_time, u32 mem_freq) {
+struct memEnergyFreq compute_mem_emin(u64 actpreread_events, u64 actprewrite_events,u64 num_reads, u64 num_writes, u64 num_refreshes, u64 active_time, u64 precharge_time, u32 mem_freq) {
 	u64 freq, emin=0, fmin;
 	u64 energy, read_burst_time, total_time;
 	u64 active_time_local, read_burst_time_local;
-	
+
+	struct memEnergyFreq minEnergyFreq;
+
 	mem_prev_freq = mem_freq;
 	read_burst_time = ((num_reads+num_writes) * tBURSTSpec * memfSpec) / mem_prev_freq; //in ps
 	read_burst_time = read_burst_time / 1000; // in ns
@@ -256,11 +258,13 @@ u64 compute_mem_emin(u64 actpreread_events, u64 actprewrite_events,u64 num_reads
 			emin = energy;
 			fmin = freq;
 		}
-//		printf("mem ineff. contr.: energy:%llu    freq:%llu\n", energy, freq);
+//		printf("mem ineff. contr. (emin): energy:%llu    freq:%llu\n", energy, freq);
 	}
 	if(fmin != minMemFreq)
 		printf("ineff. contrl. mem: fmin != minMemFreq -- fmin:%llu	minMemFreq:%d\n",fmin, minMemFreq);
-	return emin;
+	minEnergyFreq.energy = emin;
+	minEnergyFreq.freq = fmin;
+	return minEnergyFreq;
 }
 
 u64 compute_mem_energy(u64 actpreread_events,u64  actprewrite_events,u64 reads, u64 writes, u64 refreshes, u64 active_time, u64 precharge_time,  u64 freq) {
@@ -296,14 +300,15 @@ u64 compute_mem_energy(u64 actpreread_events,u64  actprewrite_events,u64 reads, 
 	write_burst_energy = write_burst_energy / 1000; //in uJ
 
 	//compute read energy
-	read_energy = read_precharge_energy + read_burst_energy; //in nJ
+	read_energy = read_precharge_energy + read_burst_energy; //in uJ
 
 	//compute write energy
-	write_energy = write_precharge_energy + write_burst_energy; // in nJ
+	write_energy = write_precharge_energy + write_burst_energy; // in uJ
 	
 	//compute background energy
 	background_energy = ((precharge_time * IDD2N) + (active_time * IDD3N)) * Vdd; // ns * mA * mV
 	background_energy = background_energy / 1000000; // in nJ
+	background_energy = background_energy / 1000; // in uJ
 
 	//compute total energy
 	energy = refresh_energy + read_energy + write_energy + background_energy;
@@ -313,7 +318,9 @@ u64 compute_mem_energy(u64 actpreread_events,u64  actprewrite_events,u64 reads, 
 	printf("IDD0:%llu	IDD2N:%llu	IDD3N:%llu	IDD5B:%llu	IDD4R:%llu	IDD4W:%llu\n",IDD0,IDD2N,IDD3N,IDD5B,IDD4R,IDD4W);
 	printf("Vdd:%d	tRFC:%d		tRP:%d		tBURST:%llu\n",Vdd,tRFC,tRP,tBURST);
 	printf("refresh:%llu	read_pre:%llu	write_pre:%llu	read_burst:%llu	   write_burst:%llu   read:%llu	   write:%llu   background:%llu	 total:%llu\n",refresh_energy,read_precharge_energy,write_precharge_energy,read_burst_energy,write_burst_energy,read_energy,write_energy,background_energy,energy);
-*/	return energy;	
+*/	
+	//printf("mem ineff. contr. (energy): energy:%llu    freq:%llu\n", energy, freq);
+	return energy;	
 }
 
 void scale_mem_perf_power_model(u64 freq_curr) {

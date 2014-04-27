@@ -85,13 +85,14 @@ void create_cpu_energy_freq_lookup_table() {
 	}
 }
 
+/*
 u64 convert_cpu_inefficiency_to_energy(u64 cpu_busy_cycles, u64 cpu_idle_time, int inefficiency) {
 	u64 emin, energy;
 	emin = compute_cpu_emin(cpu_busy_cycles, cpu_idle_time);
 	energy = (emin * inefficiency) / 1000;//inefficiency is in milli
 	return energy;
 }
-
+*/
 u64 map_cpu_energy_to_frequency(u64 cpu_busy_cycles, u64 cpu_idle_time, u64 energy) {
         u_int32_t i;
         u64 **busyCycles_ptr,*energy_ptr;
@@ -161,22 +162,25 @@ u64 map_cpu_energy_to_frequency(u64 cpu_busy_cycles, u64 cpu_idle_time, u64 ener
 	return freq;
 }
 
-u64 compute_cpu_emin(u64 cpu_busy_cycles, u64 cpu_idle_time) {
-	u64 freq, volt=CPUminVolt, emin=0;
+struct cpuEnergyFreq compute_cpu_emin(u64 cpu_busy_cycles, u64 cpu_idle_time) {
+	u64 freq, volt=CPUminVolt ;
 	u64 energy;
+	struct cpuEnergyFreq minEnergyFreq;
 
 	for(freq=CPUminFreq; freq<=CPUmaxFreq; freq+=CPUfStep, volt+=CPUVStep) {
 		energy = compute_cpu_energy(cpu_busy_cycles, cpu_idle_time, freq, volt);
 		if(freq == CPUminFreq) {
-			emin = energy;
-//			fmin = CPUminFreq;	//FIXME
-		} else if(energy <= emin) {
-			emin = energy;
-//			fmin = freq;		//FIXME
+			minEnergyFreq.energy = energy;
+			minEnergyFreq.freq = CPUminFreq;
+			minEnergyFreq.volt = CPUminVolt;
+		} else if(energy <= minEnergyFreq.energy) {
+			minEnergyFreq.energy = energy;
+			minEnergyFreq.freq = freq;
+			minEnergyFreq.volt = volt;
 		} else 
 			break;
 	}
-	return emin;
+	return minEnergyFreq;
 }
 
 u64 compute_cpu_energy(u64 cpu_busy_cycles, u64 cpu_idle_time, u64 freq, u64 volt) {
@@ -202,6 +206,7 @@ u64 compute_cpu_energy(u64 cpu_busy_cycles, u64 cpu_idle_time, u64 freq, u64 vol
 	cpu_dynamic_energy = cpu_dynamic_energy / 1000000;//uJ
 
 	energy = cpu_leakage_energy + cpu_background_energy + cpu_dynamic_energy;
+//	printf("cpu ineff. contr.: energy:%llu    freq:%llu\n", energy, freq);
 	return energy;	
 }
 

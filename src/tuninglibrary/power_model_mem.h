@@ -21,6 +21,11 @@ u64 prechargeTime;
 u64 activeTime;
 };
 
+struct memEnergyFreq
+{
+u64 energy;
+u64 freq;
+};
 #define MEM_SLIDING_WINDOW_LENGTH 10
 #define MEM_NORMALIZATION_PERIOD 10000000	//10ms .. LUT is designed for this period
 
@@ -56,8 +61,8 @@ u64 activeTime;
 
 u64 convert_mem_inefficiency_to_energy(u64, u64, u64, u64, u64, u64, u64, int);
 struct memWorkStats normalize_mem_stats(u64, u64, u64, u64,u64,u64,u64);
-u64 map_mem_energy_to_frequency(u64, u64, u64, u64, u64, u64, u64, u32, u64);
+u64 map_mem_energy_to_frequency(u64, u64, u64, u64, u64, u64, u64, u64, u64, u64);
 u64 map_mem_energy_to_frequency_close(u64, u64, u64, u64, u64, u64, u64, u32, u64);
-u64 compute_mem_emin(u64, u64, u64, u64, u64, u64, u64, u32);
+struct memEnergyFreq compute_mem_emin(u64, u64, u64, u64, u64, u64, u64, u32);
 u64 compute_mem_energy(u64, u64, u64,u64,u64,u64,u64,u64);
 void scale_mem_perf_power_model(u64);
