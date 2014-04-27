@@ -23,22 +23,27 @@ all : host
 host    : CROSS=
 arm lib : CROSS=arm-none-linux-gnueabi-
 arm     : CFLAGS+= -D ARM
-lib     : CFLAGS+= -fpic -shared
+lib     : CFLAGS+= -fpic
 
 host arm : tuninglibrary.o built-in.o main.o
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
 
-lib : libtuning.so
 	
 built-in.o : common.o perf.o cpu.o mem.o io.o micro_benchmark.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
 
-libtuning.so : power_model.o tuning_library.o
+tuninglibrary.o : tuning_library.o power_model.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
-	
+
 power_model.o : power_model_cpu.o power_model_mem.o
 	$(addprefix $(CROSS), ld) -r $^ -o $@
 	
+
+lib : libtuning.a
+libtuning.a : power_model_cpu.o power_model_mem.o tuning_library.o
+	$(addprefix $(CROSS), ar) rcs $@ $^
+	
+
 %.o : %.c
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c $< -o $@
 
