@@ -86,6 +86,8 @@ struct stats {
 	u64 cur_time;
 };
 
+volatile int tuning_library_is_app_finished;
+
 static char *inefficiency_budget_path;
 static char *controller_path;
 static char *task_stats_path;
@@ -549,8 +551,8 @@ static void run_tuning_algorithm(int signal) {
 	write_stats("0");
 	write_controller(&component_settings);
 
-
-	schedule();
+	if(!tuning_library_is_app_finished)
+		schedule();
 }
 
 int tuning_library_init() {
@@ -586,6 +588,7 @@ int tuning_library_init() {
 
 void tuning_library_start() {
 	is_tuning_disabled = 0;
+	tuning_library_is_app_finished = 0;
 	run_tuning_algorithm(0);
 }
 
