@@ -11,6 +11,8 @@
 typedef unsigned long long u64;
 typedef unsigned int u32;
 
+extern unsigned int is_tuning_disabled;
+
 int tuning_library_init(void);
 void tuning_library_start(void);
 void tuning_library_stop(void);

@@ -13,9 +13,7 @@
 #ifdef ARM
 
 static int is_finished = 0;
-static int is_tuning_enabled = 0;
 static int budget;
-
 static u64 num_loops;
 
 static void usage(char *error) {
@@ -83,7 +81,7 @@ static int parse_opts(int argc, char **argv) {
 			periodic_perf = 1;
 			break;
 		case 'u' :
-			is_tuning_enabled = 1;
+			is_tuning_disabled = 0;
 			break;
 		case 'b' :
 			budget = atoi(optarg);
@@ -230,7 +228,7 @@ void mem_exit() {
 static int run_bench_mem(int argc, char **argv) {
 	parse_opts(argc, argv);
 	mem_init();
-	if(is_tuning_enabled) {
+	if(!is_tuning_disabled) {
 		tuning_library_init();
 		tuning_library_set_budget(budget);
 		tuning_library_start();
@@ -238,7 +236,7 @@ static int run_bench_mem(int argc, char **argv) {
 
 	operation_run_mem(num_loops);
 
-	if(is_tuning_enabled)
+	if(!is_tuning_disabled)
 		tuning_library_exit();
 
 	return 0;

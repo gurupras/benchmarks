@@ -88,13 +88,14 @@ struct stats {
 	u64 cur_time;
 };
 
+unsigned int is_tuning_disabled = 1;
+
 static char *logbuf;
 static char *inefficiency_budget_path;
 static char *controller_path;
 static char *task_stats_path;
 
 static struct stats *prev_stats = NULL;
-static unsigned int is_tuning_disabled = 0;
 static unsigned int interval = 100 * 1000;	//in us
 static pid_t my_pid = -1;
 

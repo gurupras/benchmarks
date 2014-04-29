@@ -10,7 +10,6 @@
 #include "tuninglibrary/tuning_library.h"
 
 u64 end_number = ~0, current_number = 0, finish_number = -1;
-static int is_tuning_enabled = 0;
 static int budget;
 static volatile int is_finished = 0;
 static struct timespec sleep_interval = {0,0};
@@ -77,7 +76,7 @@ static int parse_opts(int argc, char **argv) {
 			periodic_perf = 1;
 			break;
 		case 'u' :
-			is_tuning_enabled = 1;
+			is_tuning_disabled = 0;
 			break;
 		case 'b' :
 			budget = atoi(optarg);
@@ -158,7 +157,7 @@ static void init() {
 
 	init_list(primes);
 
-	if(is_tuning_enabled) {
+	if(!is_tuning_disabled) {
 		tuning_library_init();
 		tuning_library_set_budget(budget);
 		tuning_library_start();
@@ -207,7 +206,7 @@ static int run_bench_cpu(int argc, char **argv) {
 	start_time = rdclock();
 	__bench_cpu_prime();
 
-	if(is_tuning_enabled)
+	if(!is_tuning_disabled)
 		tuning_library_exit();
 
 	return 0;
