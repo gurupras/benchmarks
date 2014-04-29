@@ -116,6 +116,7 @@ void tuning_library_set_interval(unsigned int val) {
 
 static int read_controller(struct component_settings *map) {
 	int err = 0;
+	u64 ns = get_process_time();
 	int fd = open(controller_path, O_RDONLY);
 	if(fd < 0) {
 		perror("Unable to open controller\n");
@@ -141,11 +142,16 @@ static int read_controller(struct component_settings *map) {
 	map->inefficiency[NET] = atoi(ptr);
 
 	printf("Controller MAX inefficiencies  :%d %d %d\n", map->inefficiency[CPU], map->inefficiency[MEM], map->inefficiency[NET]);
+
+	ns = get_process_time() - ns;
+	printf("read_controller took :%lluns\n", ns);
+
 	return 0;
 }
 
 static int write_controller(struct component_settings *map) {
 	int err = 0;
+	u64 ns = get_process_time();
 	int fd = open(controller_path, O_WRONLY);
 	if(fd < 0) {
 		perror("Unable to open controller\n");
@@ -171,11 +177,16 @@ static int write_controller(struct component_settings *map) {
 		return err;
 	}
 	close(fd);
+
+	ns = get_process_time() - ns;
+	printf("write_controller took :%lluns\n", ns);
+
 	return 0;
 }
 
 static int read_stats(struct stats *stats) {
 	int err = 0;
+	u64 ns = get_process_time();
 	int fd = open(task_stats_path, O_RDONLY);
 	if(fd < 0) {
 		perror("Could not open task_stats\n");
@@ -303,11 +314,14 @@ static int read_stats(struct stats *stats) {
 
 //	31
 
+	ns = get_process_time() - ns;
+	printf("read_stats took :%lluns\n", ns);
 	return 0;
 }
 
 static int write_stats(char *buf) {
 	int err = 0;
+	u64 ns = get_process_time();
 	int fd = open(task_stats_path, O_WRONLY);
 	if(fd < 0) {
 		perror("Could not open task_stats\n");
@@ -320,12 +334,15 @@ static int write_stats(char *buf) {
 		return err;
 	}
 	close(fd);
+	ns = get_process_time() - ns;
+	printf("write_stats took :%lluns\n", ns);
 	return 0;
 }
 
 static int read_inefficiency_budget(int *budget) {
 	int err = 0;
 	char buf[64];
+	u64 ns = get_process_time();
 	int fd = open(inefficiency_budget_path, O_RDONLY);
 	if(fd < 0) {
 		perror("Could not open inefficiency_budget\n");
@@ -339,12 +356,17 @@ static int read_inefficiency_budget(int *budget) {
 	close(fd);
 
 	*budget = atoi(buf);
+
+	ns = get_process_time() - ns;
+	printf("read_budget took :%lluns\n", ns);
+
 	return 0;
 }
 
 static int write_inefficiency_budget(int budget) {
 	int err = 0;
 	char buf[64];
+	u64 ns = get_process_time();
 	int fd = open(inefficiency_budget_path, O_WRONLY);
 	if(fd < 0) {
 		perror("Could not open inefficiency_budget\n");
@@ -358,6 +380,9 @@ static int write_inefficiency_budget(int budget) {
 		return err;
 	}
 	close(fd);
+
+	ns = get_process_time() - ns;
+	printf("write_budget took :%lluns\n", ns);
 
 	return 0;
 }
@@ -415,6 +440,7 @@ static inline void schedule() {
 }
 
 static void compute_inefficiency_targets(struct stats *stats, struct stats *prev, struct component_settings *component_settings) {
+	u64 ns = get_process_time();
 	u64 quantum_time;
 	u64 cur_time		= get_process_time();
 	mem_curr_freq = mem_new_freq;
@@ -535,13 +561,17 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	component_settings->frequency[CPU]	= target_cpu_frequency;
 	component_settings->frequency[MEM]	= target_mem_frequency;
 	mem_new_freq = target_mem_frequency;
+	ns = get_process_time() - ns;
+	printf("algorithm took :%lluns\n", ns);
 }
 
 static void run_tuning_algorithm(int signal) {
 	struct stats stats;
 	struct component_settings component_settings;
 
+	u64 ns = get_process_time();
 	read_stats(&stats);
+	ns = get_process_time() - ns;
 	compute_inefficiency_targets(&stats, prev_stats, &component_settings);
 
 	u64 cur_time = prev_stats->cur_time;
