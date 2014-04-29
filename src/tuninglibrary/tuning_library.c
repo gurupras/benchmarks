@@ -89,6 +89,7 @@ struct stats {
 };
 
 unsigned int is_tuning_disabled = 1;
+static int is_init_complete = 0;
 
 static char *logbuf;
 static char *inefficiency_budget_path;
@@ -590,17 +591,24 @@ int tuning_library_init() {
 	snprintf(path, 64, "/proc/%d/" POWER_AGILE_TASK_STATS, my_pid);
 	task_stats_path = path;
 
-	read_power_agile_components();
+	if(read_power_agile_components()) {
+		printf("Failed to initialize tuning library\n");
+		is_tuning_disabled = 1;
+		return -1;
+	}
 
 	prev_stats = malloc(sizeof(struct stats));
 	bzero(prev_stats, sizeof(prev_stats));
+
+	is_init_complete = 1;
 
 	return 0;
 }
 
 void tuning_library_start() {
 	is_tuning_disabled = 0;
-	run_tuning_algorithm(0);
+	if(is_init_complete)
+		run_tuning_algorithm(0);
 }
 
 void tuning_library_stop() {
@@ -615,4 +623,30 @@ void tuning_library_exit() {
 
 void tuning_library_set_budget(int val) {
 	write_inefficiency_budget(val);
+}
+
+void tuning_library_spec_init(int *argc_ptr, char ***argv_ptr) {
+//  Tuning library hacks
+    if(*argc_ptr > 1) {
+        if(strcmp(*argv_ptr[1], "-poweragile") == 0) {
+//          We're expecting another argument
+            int budget = atoi(*argv_ptr[2]);
+//          We were never here!
+            is_tuning_disabled = 0;
+            printf("argc :%d\n", *argc_ptr);
+            printf("Tuning library enabled! Budget :%d\n", budget);
+            *argv_ptr[1] = NULL;
+            *argv_ptr[2] = NULL;
+            int i;
+            for(i = 3; i < *argc_ptr; i++) {
+                *argv_ptr[i - 2] = *argv_ptr[i];
+                *argv_ptr[i] = NULL;
+            }
+            printf("Next argument :%s\n", *argv_ptr[1]);
+            tuning_library_init();
+            tuning_library_set_budget(budget);
+            tuning_library_start();
+            *argc_ptr = *argc_ptr - 2;
+        }
+    }
 }

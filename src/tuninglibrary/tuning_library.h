@@ -14,6 +14,7 @@ typedef unsigned int u32;
 extern unsigned int is_tuning_disabled;
 
 int tuning_library_init(void);
+void tuning_library_spec_init(int *argc_ptr, char ***argv_ptr);
 void tuning_library_start(void);
 void tuning_library_stop(void);
 void tuning_library_exit(void);
