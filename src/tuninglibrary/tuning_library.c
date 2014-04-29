@@ -26,6 +26,7 @@
 
 #define DIFF_STATS(stat, prev_stat, field) (stat.field - prev_stat.field)
 
+#define LOGSIZE		8192
 enum COMPONENT {
 	CPU,
 	MEM,
@@ -86,8 +87,7 @@ struct stats {
 	u64 cur_time;
 };
 
-volatile int tuning_library_is_app_finished;
-
+static char *logbuf;
 static char *inefficiency_budget_path;
 static char *controller_path;
 static char *task_stats_path;
@@ -551,8 +551,7 @@ static void run_tuning_algorithm(int signal) {
 	write_stats("0");
 	write_controller(&component_settings);
 
-	if(!tuning_library_is_app_finished)
-		schedule();
+	schedule();
 }
 
 int tuning_library_init() {
@@ -562,6 +561,9 @@ int tuning_library_init() {
 	}
 
 	signal(SIGALRM, run_tuning_algorithm);
+
+	logbuf = malloc(sizeof(char) * LOGSIZE);
+	printf("Initialized Tuning library log\n");
 
 	char *path = malloc(sizeof(char) * 64);
 	bzero(path, 64);
@@ -588,11 +590,14 @@ int tuning_library_init() {
 
 void tuning_library_start() {
 	is_tuning_disabled = 0;
-	tuning_library_is_app_finished = 0;
 	run_tuning_algorithm(0);
 }
 
 void tuning_library_stop() {
+	is_tuning_disabled = 1;
+}
+
+void tuning_library_exit() {
 	is_tuning_disabled = 1;
 }
 
