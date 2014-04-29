@@ -238,7 +238,9 @@ static int run_bench_mem(int argc, char **argv) {
 
 	operation_run_mem(num_loops);
 
-	tuning_library_exit();
+	if(is_tuning_enabled)
+		tuning_library_exit();
+
 	return 0;
 }
 

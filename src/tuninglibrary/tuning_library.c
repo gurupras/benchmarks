@@ -19,6 +19,7 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdarg.h>
 
 #define POWER_AGILE_INEFFICIENCY_BUDGET 	"power_agile_task_inefficiency_budget"
 #define POWER_AGILE_CONTROLLER				"power_agile_controller"
@@ -26,7 +27,7 @@
 
 #define DIFF_STATS(stat, prev_stat, field) (stat.field - prev_stat.field)
 
-#define LOGSIZE		8192
+#define LOGSIZE		65536
 enum COMPONENT {
 	CPU,
 	MEM,
@@ -103,6 +104,13 @@ static const char *components_str[] = {"cpu", "mem", "net"};
 
 u64 mem_curr_freq, mem_new_freq=800;
 
+static inline void tuning_library_log(const char *fmt, ...) {
+	va_list argptr;
+	va_start(argptr, fmt);
+	vsnprintf(logbuf + strlen(logbuf), LOGSIZE - strlen(logbuf), fmt, argptr);
+	va_end(argptr);
+}
+
 static inline u64 get_process_time(void) {
 	struct timespec ts;
 
@@ -140,7 +148,7 @@ static int read_controller(struct component_settings *map) {
 	ptr = strsep(&tmp, " ");
 	map->inefficiency[NET] = atoi(ptr);
 
-	printf("Controller MAX inefficiencies  :%d %d %d\n", map->inefficiency[CPU], map->inefficiency[MEM], map->inefficiency[NET]);
+	tuning_library_log("Controller MAX inefficiencies  :%d %d %d\n", map->inefficiency[CPU], map->inefficiency[MEM], map->inefficiency[NET]);
 	return 0;
 }
 
@@ -397,7 +405,7 @@ static int read_power_agile_components() {
 			net_max_inefficiency = atoi(strsep(&ptr, " "));
 		}
 	}
-	printf("MAX Inefficiencies :%u %u %u\n", cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency);
+	tuning_library_log("MAX Inefficiencies :%u %u %u\n", cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency);
 	return 0;
 }
 
@@ -456,30 +464,30 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	u64 net_emin  = 1;
 	u64 total_budget = (cpu_emin + mem_emin + stats->net.net_emin) * (u64) inefficiency_budget;
 
-	printf("Emins : %llu %llu %llu\n", cpu_emin, mem_emin, stats->net.net_emin);
-	printf("Total budget               :%llu\n", total_budget);
-	printf("Quantum time(clock)        :%llu\n", quantum_time);
-	printf("Total time(diff)           :%llu\n", DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_total_time));
+	tuning_library_log("Emins : %llu %llu %llu\n", cpu_emin, mem_emin, stats->net.net_emin);
+	tuning_library_log("Total budget               :%llu\n", total_budget);
+	tuning_library_log("Quantum time(clock)        :%llu\n", quantum_time);
+	tuning_library_log("Total time(diff)           :%llu\n", DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_total_time));
 
 	double cpu_load = ((double) cpu_busy_time / (double) quantum_time);
 	component_settings->inefficiency[CPU] = cpu_load * cpu_max_inefficiency;
 	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] < 1000 ? 1000 : component_settings->inefficiency[CPU];
 	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[CPU];
-	printf("CPU busy time              :%llu\n", cpu_busy_time);
-	printf("CPU idle time              :%llu\n", cpu_idle_time);
-	printf("CPU load                   :%f\n", cpu_load);
-	printf("CPU inefficiency (load)    :%d\n", component_settings->inefficiency[CPU]);
+	tuning_library_log("CPU busy time              :%llu\n", cpu_busy_time);
+	tuning_library_log("CPU idle time              :%llu\n", cpu_idle_time);
+	tuning_library_log("CPU load                   :%f\n", cpu_load);
+	tuning_library_log("CPU inefficiency (load)    :%d\n", component_settings->inefficiency[CPU]);
 
 	double mem_load = ((double) mem_busy_time / (double) quantum_time);
 	mem_load += 0.3;																//XXX: Hack
 	component_settings->inefficiency[MEM] = mem_load * mem_max_inefficiency;
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] < 1000 ? 1000 : component_settings->inefficiency[MEM];
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] > mem_max_inefficiency ? mem_max_inefficiency : component_settings->inefficiency[MEM];
-	printf("MEM busy time              :%llu\n", mem_busy_time);
-	printf("MEM reads                  :%llu\n", mem_reads);
-	printf("MEM writes                 :%llu\n", mem_writes);
-	printf("MEM load(+30)              :%f\n", mem_load);
-	printf("MEM inefficiency (load)    :%d\n", component_settings->inefficiency[MEM]);
+	tuning_library_log("MEM busy time              :%llu\n", mem_busy_time);
+	tuning_library_log("MEM reads                  :%llu\n", mem_reads);
+	tuning_library_log("MEM writes                 :%llu\n", mem_writes);
+	tuning_library_log("MEM load(+30)              :%f\n", mem_load);
+	tuning_library_log("MEM inefficiency (load)    :%d\n", component_settings->inefficiency[MEM]);
 
 	component_settings->inefficiency[NET] = 1000;
 
@@ -506,7 +514,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 			break;
 	}
 
-	printf("CPU target inefficiency:%d\t	MEM target inefficiency:%d\n",component_settings->inefficiency[CPU],component_settings->inefficiency[MEM] );
+	tuning_library_log("CPU target inefficiency:%d\t	MEM target inefficiency:%d\n",component_settings->inefficiency[CPU],component_settings->inefficiency[MEM] );
 
 	// Best frequency matching target cpu inefficiency
 	target_cpu_energy = component_settings->inefficiency[CPU] * cpu_emin / 1000;	//inefficiency is currently in millis
@@ -515,7 +523,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 		if( target_cpu_energy < cpu_energy)
 			break;
 	}
-	if(freq > CPUminFreq) 
+	if(freq > CPUminFreq)
 		target_cpu_frequency = freq - CPUfStep;
 
 	//Best frequency matching target mem inefficiency
@@ -563,6 +571,7 @@ int tuning_library_init() {
 	signal(SIGALRM, run_tuning_algorithm);
 
 	logbuf = malloc(sizeof(char) * LOGSIZE);
+	bzero(logbuf, LOGSIZE);
 	printf("Initialized Tuning library log\n");
 
 	char *path = malloc(sizeof(char) * 64);
@@ -598,6 +607,8 @@ void tuning_library_stop() {
 }
 
 void tuning_library_exit() {
+	fprintf(stdout, "%s", logbuf);
+	free(logbuf);
 	is_tuning_disabled = 1;
 }
 

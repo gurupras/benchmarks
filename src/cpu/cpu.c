@@ -207,6 +207,9 @@ static int run_bench_cpu(int argc, char **argv) {
 	start_time = rdclock();
 	__bench_cpu_prime();
 
+	if(is_tuning_enabled)
+		tuning_library_exit();
+
 	return 0;
 }
 
@@ -236,7 +239,6 @@ static void timed_bench_cpu(u64 time) {
 		}
 		current_number += 2;
 	}
-	tuning_library_exit();
 }
 
 struct benchmark cpu = {
