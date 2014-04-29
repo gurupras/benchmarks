@@ -151,6 +151,7 @@ static int read_controller(struct component_settings *map) {
 
 static int write_controller(struct component_settings *map) {
 	int err = 0;
+	int len;
 	u64 ns = get_process_time();
 	int fd = open(controller_path, O_WRONLY);
 	if(fd < 0) {
@@ -160,18 +161,17 @@ static int write_controller(struct component_settings *map) {
 	char buf[64];
 	bzero(buf, sizeof buf);
 
-	sprintf(buf, "%d", map->frequency[CPU]);
-	sprintf(buf, "%s %d", buf, map->inefficiency[CPU]);
+	len =
+		sprintf(buf, "%d %d %d %d %d %d\n",
+			map->frequency[CPU],
+			map->inefficiency[CPU],
+			map->frequency[MEM],
+			map->inefficiency[MEM],
+			map->frequency[NET],
+			map->inefficiency[NET]
+		);
 
-	sprintf(buf, "%s %d", buf, map->frequency[MEM]);
-	sprintf(buf, "%s %d", buf, map->inefficiency[MEM]);
-
-	sprintf(buf, "%s %d", buf, map->frequency[NET]);
-	sprintf(buf, "%s %d", buf, map->inefficiency[NET]);
-
-	sprintf(buf, "%s\n", buf);
-
-	err = write(fd, buf, strlen(buf));
+	err = write(fd, buf, len);
 	if(err < 0) {
 		perror("Unable to write controller\n");
 		return err;
