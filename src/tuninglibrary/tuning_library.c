@@ -34,8 +34,8 @@ enum COMPONENT {
 };
 
 struct component_settings {
-	int frequency[NR_COMPONENTS];
 	int inefficiency[NR_COMPONENTS];
+	int frequency[NR_COMPONENTS];
 };
 
 struct base_stats {
@@ -151,27 +151,18 @@ static int read_controller(struct component_settings *map) {
 
 static int write_controller(struct component_settings *map) {
 	int err = 0;
-	int len;
 	u64 ns = get_process_time();
 	int fd = open(controller_path, O_WRONLY);
 	if(fd < 0) {
 		perror("Unable to open controller\n");
 		return fd;
 	}
-	char buf[64];
+	char buf[sizeof(struct component_settings)];
 	bzero(buf, sizeof buf);
 
-	len =
-		sprintf(buf, "%d %d %d %d %d %d\n",
-			map->frequency[CPU],
-			map->inefficiency[CPU],
-			map->frequency[MEM],
-			map->inefficiency[MEM],
-			map->frequency[NET],
-			map->inefficiency[NET]
-		);
+	memcpy(buf, map, sizeof(struct component_settings));
 
-	err = write(fd, buf, len);
+	err = write(fd, buf, sizeof(struct component_settings));
 	if(err < 0) {
 		perror("Unable to write controller\n");
 		return err;
@@ -365,16 +356,14 @@ static int read_inefficiency_budget(int *budget) {
 
 static int write_inefficiency_budget(int budget) {
 	int err = 0;
-	char buf[64];
 	u64 ns = get_process_time();
 	int fd = open(inefficiency_budget_path, O_WRONLY);
 	if(fd < 0) {
 		perror("Could not open inefficiency_budget\n");
 		return fd;
 	}
-	bzero(buf, sizeof buf);
-	sprintf(buf, "%d\n", budget);
-	err = write(fd, buf, strlen(buf));
+
+	err = write(fd, &budget, sizeof budget);
 	if(err < 0) {
 		perror("Unable to write inefficiency_budget\n");
 		return err;
