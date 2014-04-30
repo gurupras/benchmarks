@@ -110,7 +110,8 @@ static u64 mem_curr_freq, mem_new_freq=800;
 static inline void tuning_library_log(const char *fmt, ...) {
 	va_list argptr;
 	va_start(argptr, fmt);
-	vsnprintf(logbuf + strlen(logbuf), LOGSIZE - strlen(logbuf), fmt, argptr);
+//	vsnprintf(logbuf + strlen(logbuf), LOGSIZE - strlen(logbuf), fmt, argptr);
+	vfprintf(stdout, fmt, argptr);
 	va_end(argptr);
 }
 
@@ -572,11 +573,13 @@ static void run_tuning_algorithm(int signal) {
 	ns = get_process_time() - ns;
 	compute_inefficiency_targets(&stats, prev_stats, &component_settings);
 
-	u64 cur_time = prev_stats->cur_time;
-	bzero(prev_stats, sizeof(struct stats));
-	prev_stats->cur_time = cur_time;
+//	u64 cur_time = prev_stats->cur_time;
+//	bzero(prev_stats, sizeof(struct stats));
+//	prev_stats->cur_time = cur_time;
+//
+//	write_stats("0");
+	*prev_stats = stats;
 
-	write_stats("0");
 	write_controller(&component_settings);
 
 	schedule();
