@@ -125,7 +125,7 @@ void tuning_library_set_interval(unsigned int val) {
 	interval = val;
 }
 
-static int read_controller(struct component_settings *map) {
+static inline int read_controller(struct component_settings *map) {
 	int err = 0;
 	u64 ns = get_process_time();
 	int fd = open(controller_path, O_RDONLY);
@@ -160,7 +160,7 @@ static int read_controller(struct component_settings *map) {
 	return 0;
 }
 
-static int write_controller(struct component_settings *map) {
+static inline int write_controller(struct component_settings *map) {
 	int err = 0;
 	u64 ns = get_process_time();
 	int fd = open(controller_path, O_WRONLY);
@@ -186,7 +186,7 @@ static int write_controller(struct component_settings *map) {
 	return 0;
 }
 
-static int read_stats(struct stats *stats) {
+static inline int read_stats(struct stats *stats) {
 	int err = 0;
 	u64 ns = get_process_time();
 	int fd = open(task_stats_path, O_RDONLY);
@@ -321,7 +321,7 @@ static int read_stats(struct stats *stats) {
 	return 0;
 }
 
-static int write_stats(char *buf) {
+static inline int write_stats(char *buf) {
 	int err = 0;
 	u64 ns = get_process_time();
 	int fd = open(task_stats_path, O_WRONLY);
@@ -341,7 +341,7 @@ static int write_stats(char *buf) {
 	return 0;
 }
 
-static int read_inefficiency_budget(int *budget) {
+static inline int read_inefficiency_budget(int *budget) {
 	int err = 0;
 	char buf[64];
 	u64 ns = get_process_time();
@@ -365,7 +365,7 @@ static int read_inefficiency_budget(int *budget) {
 	return 0;
 }
 
-static int write_inefficiency_budget(int budget) {
+static inline int write_inefficiency_budget(int budget) {
 	int err = 0;
 	u64 ns = get_process_time();
 	int fd = open(inefficiency_budget_path, O_WRONLY);
@@ -556,8 +556,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 			target_mem_energy,
 			mem_curr_freq);
 
-	component_settings->frequency[CPU]	= target_cpu_frequency;
-	component_settings->frequency[MEM]	= target_mem_frequency;
+	component_settings->frequency[CPU]	= target_cpu_frequency * 1000;	//Converting to KHz
+	component_settings->frequency[MEM]	= target_mem_frequency * 1000;	//Converting to KHz
 	mem_new_freq = target_mem_frequency;
 	ns = get_process_time() - ns;
 	printf("algorithm took :%lluns\n", ns);
