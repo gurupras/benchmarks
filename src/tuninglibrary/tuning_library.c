@@ -99,9 +99,10 @@ static pid_t my_pid = -1;
 
 static int is_cpu_tunable = 0, is_mem_tunable = 0, is_net_tunable = 0;
 static unsigned int cpu_max_inefficiency, mem_max_inefficiency, net_max_inefficiency;
+static int inefficiency_budget;
 static const char *components_str[] = {"cpu", "mem", "net"};
 
-u64 mem_curr_freq, mem_new_freq=800;
+static u64 mem_curr_freq, mem_new_freq=800;
 
 static inline u64 get_process_time(void) {
 	struct timespec ts;
@@ -446,8 +447,6 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 
 	u64 freq, volt, cpu_energy, mem_energy;
 	u64 target_cpu_energy, target_mem_energy, target_cpu_frequency, target_mem_frequency;
-	int inefficiency_budget;
-	read_inefficiency_budget(&inefficiency_budget);
 
 	struct cpuEnergyFreq minCPUEnergyFreq;
 	minCPUEnergyFreq = compute_cpu_emin(DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time));
@@ -598,6 +597,7 @@ int tuning_library_init() {
 	task_stats_path = path;
 
 	read_power_agile_components();
+	read_inefficiency_budget(&inefficiency_budget);
 
 	prev_stats = malloc(sizeof(struct stats));
 	bzero(prev_stats, sizeof(prev_stats));
