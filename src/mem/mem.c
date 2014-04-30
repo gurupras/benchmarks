@@ -8,17 +8,13 @@
 
 #include "include/common.h"
 #include "include/perf.h"
-#include "include/tuning_library.h"
+#include "tuninglibrary/tuning_library.h"
 
 #ifdef ARM
 
 static int is_finished = 0;
-static int is_tuning_enabled = 0;
 static int budget;
-
 static u64 num_loops;
-
-extern volatile int tuning_library_is_app_finished;
 
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
@@ -85,7 +81,7 @@ static int parse_opts(int argc, char **argv) {
 			periodic_perf = 1;
 			break;
 		case 'u' :
-			is_tuning_enabled = 1;
+			is_tuning_disabled = 0;
 			break;
 		case 'b' :
 			budget = atoi(optarg);
@@ -232,7 +228,7 @@ void mem_exit() {
 static int run_bench_mem(int argc, char **argv) {
 	parse_opts(argc, argv);
 	mem_init();
-	if(is_tuning_enabled) {
+	if(!is_tuning_disabled) {
 		tuning_library_init();
 		tuning_library_set_budget(budget);
 		tuning_library_start();
@@ -240,7 +236,9 @@ static int run_bench_mem(int argc, char **argv) {
 
 	operation_run_mem(num_loops);
 
-	tuning_library_is_app_finished = 1;
+	if(!is_tuning_disabled)
+		tuning_library_exit();
+
 	return 0;
 }
 
