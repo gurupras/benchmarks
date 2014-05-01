@@ -110,6 +110,10 @@ static u64 mem_curr_freq, mem_new_freq=800;
 static inline void tuning_library_log(const char *fmt, ...) {
 	va_list argptr;
 	va_start(argptr, fmt);
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	double time = (ts.tv_nsec + (ts.tv_sec * 1e9)) / 1e9;
+	snprintf(logbuf + strlen(logbuf), LOGSIZE - strlen(logbuf), "[   %.6f] ", time);
 	vsnprintf(logbuf + strlen(logbuf), LOGSIZE - strlen(logbuf), fmt, argptr);
 	va_end(argptr);
 }
