@@ -275,29 +275,29 @@ u64 compute_mem_energy(u64 actpreread_events,u64  actprewrite_events,u64 reads, 
 	scale_mem_perf_power_model(freq);
 
 	//calculate refresh energy
-	refresh_energy = refreshes * (IDD5B - IDD3N) * tRFC * Vdd; // c * mA * ps * mV
+	refresh_energy = refreshes * (IDD5B - IDD3N) * tRFC * Vdd * 130; // c * mA * ps * mV
 	refresh_energy = refresh_energy / 1000000000; //in nJ
-	refresh_energy = refresh_energy / 1000;//in uJ
+	refresh_energy = refresh_energy / 1000000;//in uJ
 
 	//calculate act/pre energy for reads
-	read_precharge_energy = actpreread_events * ((IDD0 * 4*tRP) - ((IDD3N * 3*tRP) + (IDD2N* tRP))) * Vdd; // mA * ps *mV
+	read_precharge_energy = actpreread_events * ((IDD0 * 4*tRP) - ((IDD3N * 3*tRP) + (IDD2N* tRP))) * Vdd * 850; // mA * ps *mV
 	read_precharge_energy = read_precharge_energy / 1000000000; //in nJ
-	read_precharge_energy = read_precharge_energy / 1000; //in uJ
+	read_precharge_energy = read_precharge_energy / 1000000; //in uJ
 
 	//calculate act/pre energy for writes
-	write_precharge_energy = actprewrite_events * ((IDD0 * 4*tRP) - ((IDD3N * 3*tRP) + (IDD2N* tRP))) * Vdd;// mA * ps *mV
+	write_precharge_energy = actprewrite_events * ((IDD0 * 4*tRP) - ((IDD3N * 3*tRP) + (IDD2N* tRP))) * Vdd * 850;// mA * ps *mV
 	write_precharge_energy = write_precharge_energy / 1000000000; //in nJ
-	write_precharge_energy = write_precharge_energy / 1000; //in uJ
+	write_precharge_energy = write_precharge_energy / 1000000; //in uJ
      
 	//calculate read burst energy
-	read_burst_energy = reads * ((IDD4R - IDD3N)* tBURST) * Vdd; //mA * ps * mV
+	read_burst_energy = reads * ((IDD4R - IDD3N)* tBURST) * Vdd * 850; //mA * ps * mV
 	read_burst_energy = read_burst_energy / 1000000000; //in nJ
-	read_burst_energy = read_burst_energy / 1000; //in uJ
+	read_burst_energy = read_burst_energy / 1000000; //in uJ
 
 	//calculate write burst energy
-	write_burst_energy = writes * ((IDD4W - IDD3N)* tBURST) * Vdd; //mA * ps * mV
+	write_burst_energy = writes * ((IDD4W - IDD3N)* tBURST) * Vdd * 850; //mA * ps * mV
 	write_burst_energy = write_burst_energy / 1000000000; //in nJ
-	write_burst_energy = write_burst_energy / 1000; //in uJ
+	write_burst_energy = write_burst_energy / 1000000; //in uJ
 
 	//compute read energy
 	read_energy = read_precharge_energy + read_burst_energy; //in uJ
@@ -306,9 +306,9 @@ u64 compute_mem_energy(u64 actpreread_events,u64  actprewrite_events,u64 reads, 
 	write_energy = write_precharge_energy + write_burst_energy; // in uJ
 	
 	//compute background energy
-	background_energy = ((precharge_time * IDD2N) + (active_time * IDD3N)) * Vdd; // ns * mA * mV
+	background_energy = ((precharge_time * IDD2N * 130) + (active_time * IDD3N * 850)) * Vdd; // ns * mA * mV
 	background_energy = background_energy / 1000000; // in nJ
-	background_energy = background_energy / 1000; // in uJ
+	background_energy = background_energy / 1000000; // in uJ
 
 	//compute total energy
 	energy = refresh_energy + read_energy + write_energy + background_energy;

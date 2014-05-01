@@ -34,10 +34,10 @@ u64 volt;
 #define CPUfSpec	1000	//MHz
 #define CPUVSpec	1250	//mV
 #define CPUfStep	30	//MHz
-#define CPUVStep	10	//mV
+#define CPUVStep	20	//mV
 #define CPUminFreq	100	//MHz
 #define CPUmaxFreq	1000	//MHz
-#define CPUminVolt	950	//mV
+#define CPUminVolt	650	//mV
 #define CPUmaxVolt	1250	//mV
 //lookup table
 #define cpuIdleTimeStep		500000	//in ns (0.5ms)  

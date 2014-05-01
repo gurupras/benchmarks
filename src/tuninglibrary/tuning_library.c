@@ -155,7 +155,7 @@ static inline int read_controller(struct component_settings *map) {
 
 
 	ns = get_process_time() - ns;
-	printf("read_controller took :%lluns\n", ns);
+//	printf("read_controller took :%lluns\n", ns);
 
 	tuning_library_log("Controller MAX inefficiencies  :%d %d %d\n", map->inefficiency[CPU], map->inefficiency[MEM], map->inefficiency[NET]);
 	return 0;
@@ -182,7 +182,7 @@ static inline int write_controller(struct component_settings *map) {
 	close(fd);
 
 	ns = get_process_time() - ns;
-	printf("write_controller took :%lluns\n", ns);
+//	printf("write_controller took :%lluns\n", ns);
 
 	return 0;
 }
@@ -318,7 +318,7 @@ static inline int read_stats(struct stats *stats) {
 //	31
 
 	ns = get_process_time() - ns;
-	printf("read_stats took :%lluns\n", ns);
+//	printf("read_stats took :%lluns\n", ns);
 	return 0;
 }
 
@@ -338,7 +338,7 @@ static inline int write_stats(char *buf) {
 	}
 	close(fd);
 	ns = get_process_time() - ns;
-	printf("write_stats took :%lluns\n", ns);
+//	printf("write_stats took :%lluns\n", ns);
 	return 0;
 }
 
@@ -361,7 +361,7 @@ static inline int read_inefficiency_budget(int *budget) {
 	*budget = atoi(buf);
 
 	ns = get_process_time() - ns;
-	printf("read_budget took :%lluns\n", ns);
+//	printf("read_budget took :%lluns\n", ns);
 
 	return 0;
 }
@@ -383,7 +383,7 @@ static inline int write_inefficiency_budget(int budget) {
 	close(fd);
 
 	ns = get_process_time() - ns;
-	printf("write_budget took :%lluns\n", ns);
+//	printf("write_budget took :%lluns\n", ns);
 
 	return 0;
 }
@@ -561,7 +561,7 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	component_settings->frequency[MEM]	= target_mem_frequency * 1000;	//Converting to KHz
 	mem_new_freq = target_mem_frequency;
 	ns = get_process_time() - ns;
-	printf("algorithm took :%lluns\n", ns);
+//	printf("algorithm took :%lluns\n", ns);
 }
 
 static void run_tuning_algorithm(int signal) {
