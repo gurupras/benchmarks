@@ -445,8 +445,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	u64 quantum_time;
 	u64 cur_time		= get_process_time();
 	mem_curr_freq = mem_new_freq;
-//	quantum_time		= cur_time - prev_stats->cur_time;
-	quantum_time		= stats->cpu.cpu_total_time;
+	quantum_time		= cur_time - prev_stats->cur_time;
+//	quantum_time		= stats->cpu.cpu_total_time;
 	stats->cur_time		= cur_time;
 
 	u64 cpu_idle_time	= DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time);
