@@ -66,6 +66,7 @@ static int parse_opts(int argc, char **argv) {
 			break;
 		}
 	}
+	return 0;
 }
 
 
@@ -78,6 +79,7 @@ every 50K mem accesses. Each mem.operation_run results in
 //trying to generate a workload of varying phases
 // cpu intensive, memory intensive, cpu + memory mix and idle
 
+	parse_opts(argc, argv);
 	tuning_library_init();
 	tuning_library_set_budget(budget);
 	tuning_library_start();
