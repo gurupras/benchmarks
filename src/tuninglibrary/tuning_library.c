@@ -652,21 +652,23 @@ void tuning_library_set_budget(int val) {
 void tuning_library_spec_init(int *argc_ptr, char ***argv_ptr) {
 //  Tuning library hacks
     if(*argc_ptr > 1) {
-        if(strcmp(*argv_ptr[1], "-poweragile") == 0) {
+	char **argv = *argv_ptr;
+        if(strcmp(argv[1], "-poweragile") == 0) {
+	    printf("Power agile enabled\n");
 //          We're expecting another argument
-            int budget = atoi(*argv_ptr[2]);
+            int budget = atoi(argv[2]);
 //          We were never here!
             is_tuning_disabled = 0;
             printf("argc :%d\n", *argc_ptr);
             printf("Tuning library enabled! Budget :%d\n", budget);
-            *argv_ptr[1] = NULL;
-            *argv_ptr[2] = NULL;
+            argv[1] = NULL;
+            argv[2] = NULL;
             int i;
             for(i = 3; i < *argc_ptr; i++) {
-                *argv_ptr[i - 2] = *argv_ptr[i];
-                *argv_ptr[i] = NULL;
+                argv[i - 2] = argv[i];
+                argv[i] = NULL;
             }
-            printf("Next argument :%s\n", *argv_ptr[1]);
+            printf("Next argument :%s\n", argv[1]);
             tuning_library_init();
             tuning_library_set_budget(budget);
             tuning_library_start();
