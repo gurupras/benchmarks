@@ -28,17 +28,6 @@
 #define DIFF_STATS(stat, prev_stat, field) (stat.field - prev_stat.field)
 
 #define LOGSIZE		65536
-enum COMPONENT {
-	CPU,
-	MEM,
-	NET,
-	NR_COMPONENTS,
-};
-
-struct component_settings {
-	int inefficiency[NR_COMPONENTS];
-	int frequency[NR_COMPONENTS];
-};
 
 struct base_stats {
 	u64 insts, cycles;
@@ -443,7 +432,8 @@ static inline void schedule() {
 	setitimer(ITIMER_REAL, &timer, NULL);
 }
 
-static void compute_inefficiency_targets(struct stats *stats, struct stats *prev, struct component_settings *component_settings) {
+static void compute_inefficiency_targets(struct stats *stats, struct stats *prev,
+		struct component_settings *component_settings, int is_auto_tune) {
 	u64 ns = get_process_time();
 	u64 quantum_time;
 	u64 cur_time		= get_process_time();
@@ -463,7 +453,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	u64 target_cpu_energy, target_mem_energy, target_cpu_frequency, target_mem_frequency;
 
 	struct cpuEnergyFreq minCPUEnergyFreq;
-	minCPUEnergyFreq = compute_cpu_emin(DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles), DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time));
+	minCPUEnergyFreq = compute_cpu_emin(DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_busy_cycles),
+										DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_idle_time));
 	u64 cpu_emin		= minCPUEnergyFreq.energy;
 	u64 cpu_fmin		= minCPUEnergyFreq.freq;
   	u64 cpu_vmin		= minCPUEnergyFreq.volt;
@@ -490,7 +481,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 	tuning_library_log("Total time(diff)           :%llu\n", DIFF_STATS(stats->cpu, prev_stats->cpu, cpu_total_time));
 
 	double cpu_load = ((double) cpu_busy_time / (double) quantum_time);
-	component_settings->inefficiency[CPU] = cpu_load * cpu_max_inefficiency;
+	if(is_auto_tune)
+		component_settings->inefficiency[CPU] = cpu_load * cpu_max_inefficiency;
 	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] < 1000 ? 1000 : component_settings->inefficiency[CPU];
 	component_settings->inefficiency[CPU] = component_settings->inefficiency[CPU] > cpu_max_inefficiency ? cpu_max_inefficiency : component_settings->inefficiency[CPU];
 	tuning_library_log("CPU busy time              :%llu\n", cpu_busy_time);
@@ -500,7 +492,8 @@ static void compute_inefficiency_targets(struct stats *stats, struct stats *prev
 
 	double mem_load = ((double) mem_busy_time / (double) quantum_time);
 	mem_load += 0.3;																//XXX: Hack
-	component_settings->inefficiency[MEM] = mem_load * mem_max_inefficiency;
+	if(is_auto_tune)
+		component_settings->inefficiency[MEM] = mem_load * mem_max_inefficiency;
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] < 1000 ? 1000 : component_settings->inefficiency[MEM];
 	component_settings->inefficiency[MEM] = component_settings->inefficiency[MEM] > mem_max_inefficiency ? mem_max_inefficiency : component_settings->inefficiency[MEM];
 	tuning_library_log("MEM busy time              :%llu\n", mem_busy_time);
@@ -574,13 +567,11 @@ static void run_tuning_algorithm(int signal) {
 	u64 ns = get_process_time();
 	read_stats(&stats);
 	ns = get_process_time() - ns;
-	compute_inefficiency_targets(&stats, prev_stats, &component_settings);
+	compute_inefficiency_targets(&stats, prev_stats, &component_settings, 1);
 
-	u64 cur_time = prev_stats->cur_time;
-	bzero(prev_stats, sizeof(struct stats));
-	prev_stats->cur_time = cur_time;
+	bzero(prev_stats, sizeof(struct component_settings));
+	*prev_stats = stats;
 
-	write_stats("0");
 	write_controller(&component_settings);
 
 	schedule();
@@ -645,6 +636,27 @@ void tuning_library_exit() {
 void tuning_library_set_budget(int val) {
 	write_inefficiency_budget(val);
 	read_inefficiency_budget(&inefficiency_budget);
+}
+
+void tuning_library_force_annotation(struct component_settings settings) {
+	struct stats stats;
+
+	tuning_library_log("annotation: %u(%u) %u(%u) %u(%u)\n",
+			settings.frequency[CPU],
+			settings.inefficiency[CPU],
+			settings.frequency[MEM],
+			settings.inefficiency[MEM],
+			settings.frequency[NET],
+			settings.inefficiency[NET]
+	);
+	read_stats(&stats);
+	compute_inefficiency_targets(&stats, prev_stats, &settings, 0);
+
+	bzero(prev_stats, sizeof(struct stats));
+	*prev_stats = stats;
+
+	write_controller(&settings);
+
 }
 
 void tuning_library_spec_init(int *argc_ptr, char ***argv_ptr) {

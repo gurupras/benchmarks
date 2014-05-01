@@ -30,6 +30,12 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.init();
 	printf("Starting micro benchmark\n");
 
+	struct component_settings settings;
+
+	settings.inefficiency[CPU] = 3900;
+	settings.inefficiency[MEM] = 1400;
+	settings.inefficiency[NET] = 1000;
+	tuning_library_force_annotation(settings);
 	for(cpu_load = 100; cpu_load >= 0; cpu_load -= 20) {
 		double cpu_load_double = cpu_load / (double) 100;
 		double current_duration = cpu_load_double * duration;
@@ -41,12 +47,21 @@ every 50K mem accesses. Each mem.operation_run results in
 		printf("\n");
 	}
 
+	settings.inefficiency[CPU] = 1200;
+	settings.inefficiency[MEM] = 2600;
+	settings.inefficiency[NET] = 1000;
+	tuning_library_force_annotation(settings);
+
 //dummy runs
 	mem.operation_run(500);
 	mem.operation_run(500);
 	mem.operation_run(500);
 	mem.operation_run(500);
 
+	settings.inefficiency[CPU] = 3900;
+	settings.inefficiency[MEM] = 1400;
+	settings.inefficiency[NET] = 1000;
+	tuning_library_force_annotation(settings);
 	for(cpu_load = 0; cpu_load <= 100; cpu_load += 20) {
 		double cpu_load_double = cpu_load / (double) 100;
 		operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
@@ -56,6 +71,10 @@ every 50K mem accesses. Each mem.operation_run results in
 		printf("\n");
 	}
 
+	settings.inefficiency[CPU] = 3900;
+	settings.inefficiency[MEM] = 1400;
+	settings.inefficiency[NET] = 1000;
+	tuning_library_force_annotation(settings);
 //dummy runs
 	mem.operation_run(500);
 	mem.operation_run(500);
