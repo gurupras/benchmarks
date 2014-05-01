@@ -617,7 +617,6 @@ int tuning_library_init() {
 		is_tuning_disabled = 1;
 		return -1;
 	}
-	read_inefficiency_budget(&inefficiency_budget);
 
 	prev_stats = malloc(sizeof(struct stats));
 	bzero(prev_stats, sizeof(prev_stats));
@@ -645,6 +644,7 @@ void tuning_library_exit() {
 
 void tuning_library_set_budget(int val) {
 	write_inefficiency_budget(val);
+	read_inefficiency_budget(&inefficiency_budget);
 }
 
 void tuning_library_spec_init(int *argc_ptr, char ***argv_ptr) {
