@@ -571,8 +571,6 @@ static void run_tuning_algorithm(int signal) {
 	struct stats stats;
 	struct component_settings component_settings;
 
-	printf("tuning algorithm running due to signal: %d\n", signal);
-
 	u64 ns = get_process_time();
 	read_stats(&stats);
 	ns = get_process_time() - ns;
@@ -595,7 +593,6 @@ int tuning_library_init() {
 	}
 
 	signal(SIGALRM, run_tuning_algorithm);
-	signal(33, run_tuning_algorithm);
 	logbuf = malloc(sizeof(char) * LOGSIZE);
 	bzero(logbuf, LOGSIZE);
 	printf("Initialized Tuning library log\n");
