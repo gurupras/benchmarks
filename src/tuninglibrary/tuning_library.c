@@ -610,7 +610,7 @@ int tuning_library_init() {
 	}
 
 	prev_stats = malloc(sizeof(struct stats));
-	bzero(prev_stats, sizeof(prev_stats));
+	bzero(prev_stats, sizeof(struct stats));
 
 	is_init_complete = 1;
 
