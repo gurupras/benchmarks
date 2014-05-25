@@ -4,7 +4,7 @@
 
 #include "include/common.h"
 #include "include/perf.h"
-#include "tuninglibrary/tuning_library.h"
+#include "include/tuning_library.h"
 
 
 #define GOVERNOR_POLL_INTERVAL	((u64) (10 * MSEC_TO_NSEC))

@@ -4,7 +4,11 @@ Debug
 .*
 bench
 
-!Makefile
+# We ignore Makefile only for this project as we create one that is possible
+# unique for each user
+Makefile
+!.Makefile
+
 !src
 !*.c
 !*.h
