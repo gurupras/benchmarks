@@ -80,9 +80,11 @@ every 50K mem accesses. Each mem.operation_run results in
 // cpu intensive, memory intensive, cpu + memory mix and idle
 
 	parse_opts(argc, argv);
-	tuning_library_init();
-	tuning_library_set_budget(budget);
-	tuning_library_start();
+	if(!is_tuning_disabled) {
+		tuning_library_init();
+		tuning_library_set_budget(budget);
+		tuning_library_start();
+	}
 
 	int cpu_load;
 
@@ -94,10 +96,13 @@ every 50K mem accesses. Each mem.operation_run results in
 
 	struct component_settings settings;
 
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1400;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
+	if(!is_tuning_disabled) {
+		settings.inefficiency[CPU] = 4300;
+		settings.inefficiency[MEM] = 1400;
+		settings.inefficiency[NET] = 1000;
+		tuning_library_force_annotation(settings);
+	}
+
 	for(cpu_load = 100; cpu_load >= 0; cpu_load -= 20) {
 		double cpu_load_double = cpu_load / (double) 100;
 		double current_duration = cpu_load_double * duration;
@@ -109,10 +114,7 @@ every 50K mem accesses. Each mem.operation_run results in
 		printf("\n");
 	}
 
-	settings.inefficiency[CPU] = 1200;
-	settings.inefficiency[MEM] = 2600;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
+
 
 //dummy runs
 	mem.operation_run(500);
@@ -120,10 +122,7 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.operation_run(500);
 	mem.operation_run(500);
 
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1400;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
+
 	for(cpu_load = 0; cpu_load <= 100; cpu_load += 20) {
 		double cpu_load_double = cpu_load / (double) 100;
 		operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
@@ -133,10 +132,8 @@ every 50K mem accesses. Each mem.operation_run results in
 		printf("\n");
 	}
 
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1400;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
+
+
 //dummy runs
 	mem.operation_run(500);
 	mem.operation_run(500);
@@ -144,40 +141,25 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.operation_run(500);
 
 	double cpu_load_double;
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1400;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
+
 	//80%load
 	cpu_load_double = 80 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1200;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
 	//100%load
 	cpu_load_double = 100 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	settings.inefficiency[CPU] = 1500;
-	settings.inefficiency[MEM] = 4300;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
 	//20%cpu load
 	cpu_load_double = 20 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1400;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
 	//80%load
 	cpu_load_double = 80 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
@@ -196,20 +178,12 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1400;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
 	//80%load
 	cpu_load_double = 80 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1400;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
 	//100%load
 	cpu_load_double = 100 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
@@ -222,10 +196,6 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	settings.inefficiency[CPU] = 4300;
-	settings.inefficiency[MEM] = 1400;
-	settings.inefficiency[NET] = 1000;
-	tuning_library_force_annotation(settings);
 	//80%load
 	cpu_load_double = 80 / (double) 100;
 	operations = ((1 - cpu_load_double) * duration) / MEM_OPERATION_DURATION;
@@ -244,7 +214,6 @@ every 50K mem accesses. Each mem.operation_run results in
 	mem.operation_run(operations);
 	cpu.timed_run((cpu_load_double * duration));
 
-	tuning_library_exit();
 	return 0;
 }
 
