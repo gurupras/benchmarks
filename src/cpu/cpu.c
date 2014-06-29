@@ -93,7 +93,7 @@ static int parse_opts(int argc, char **argv) {
 		panic(" ");
 	}
 
-	if(budget == 0) {
+	if(!is_tuning_disabled && budget == 0) {
 		usage("Must specify budget!\n");
 		panic(" ");
 	}
