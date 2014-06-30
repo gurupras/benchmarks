@@ -53,7 +53,7 @@ static int parse_opts(int argc, char **argv) {
 			break;
 		case 'h' :
 			usage(" ");
-			break;
+			exit(0);
 		case 'u' :
 			is_tuning_disabled = 0;
 			break;
