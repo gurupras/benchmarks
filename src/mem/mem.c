@@ -8,7 +8,7 @@
 
 #include "include/common.h"
 #include "include/perf.h"
-#include "include/tuning_library.h"
+#include "tuning_library.h"
 
 #ifdef ARM
 

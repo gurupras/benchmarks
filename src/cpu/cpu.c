@@ -7,7 +7,7 @@
 
 #include "include/common.h"
 #include "include/perf.h"
-#include "include/tuning_library.h"
+#include "tuning_library.h"
 
 u64 end_number = ~0, current_number = 0, finish_number = -1;
 static int budget;

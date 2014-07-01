@@ -17,8 +17,8 @@ vpath %.h $(INCLUDE)
 vpath %.c $(SOURCE_DIRS)
 VPATH=src:$(SOURCE_DIRS)
 
-CFLAGS=-Isrc 
 TUNING_LIB_PATH=
+CFLAGS=-Isrc -I$(TUNING_LIB_PATH)
 LDFLAGS=-L$(TUNING_LIB_PATH) 
 CC_OPTS = $(CFLAGS) $($*_CC_OPTS) $(LDFLAGS) -Wall -g -static
 CC =gcc
