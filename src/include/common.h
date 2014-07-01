@@ -25,6 +25,14 @@
 #define MSEC_TO_NSEC	(1000 * USEC_TO_NSEC)
 #define SEC_TO_NSEC		(1000 * MSEC_TO_NSEC)
 
+extern int verbose;
+
+#define VERBOSE(...) \
+{ \
+	if(verbose) \
+		printf(__VA_ARGS__); \
+}
+
 #include "list.h"
 
 typedef unsigned long long u64;
