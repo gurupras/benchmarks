@@ -44,7 +44,7 @@ static void usage(char *error) {
 static int parse_opts(int argc, char **argv) {
 	int opt;
 
-	while( (opt = getopt(argc, argv, "t:n:s:r:b:hpu")) != -1) {
+	while( (opt = getopt(argc, argv, "t:n:s:r:b:hpuv")) != -1) {
 		switch(opt) {
 		case ':' :
 			usage("missing parameter value");
@@ -80,6 +80,9 @@ static int parse_opts(int argc, char **argv) {
 			break;
 		case 'b' :
 			budget = atoi(optarg);
+			break;
+		case 'v' :
+			verbose = 1;
 			break;
 		default :
 		case '?' :

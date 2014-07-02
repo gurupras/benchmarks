@@ -46,7 +46,7 @@ static void usage(char *error) {
 static int parse_opts(int argc, char **argv) {
 	int opt;
 
-	while( (opt = getopt(argc, argv, "t:n:d:b:hlspu")) != -1) {
+	while( (opt = getopt(argc, argv, "t:n:d:b:hlspuv")) != -1) {
 		switch(opt) {
 		case ':' :
 			usage("missing parameter value");
@@ -85,6 +85,9 @@ static int parse_opts(int argc, char **argv) {
 			break;
 		case 'b' :
 			budget = atoi(optarg);
+			break;
+		case 'v' :
+			verbose = 1;
 			break;
 		default :
 		case '?' :
@@ -176,14 +179,14 @@ static void calculate_mem_frequency(int loops)
 {
 	int i;
 
-	printf("memBmark: Obtained start time.. Starting loop . . .\n");
+	VERBOSE("memBmark: Obtained start time.. Starting loop . . .\n");
 //	asm volatile("tight_loop_start: nop");
 
 	for(i=0; i<loops; i++) {
 		memfreq_test_loop();
 	}
 //	asm volatile("tight_loop_finish: nop");
-	printf("memBmark: Obtained end time.. \n");
+	VERBOSE("memBmark: Obtained end time.. \n");
 }
 
 void mem_init() {
@@ -210,12 +213,12 @@ void operation_run_mem(int loops) {
 
 	memAccesses = loops * accessesPerLoop; //accessing every 16th element .. and loop repeats 5 times
 
-	printf("Starting the benchmark\n");
-	printf("arraySize is %llu\n",arraySize);
-	printf("step is %d\n",step);
-	printf("accessesPerLoop are %d\n",accessesPerLoop);
-	printf("Loops are %d\n",loops);
-	printf("Expected Mem access:%llu\n",memAccesses);
+	VERBOSE("Starting the benchmark\n");
+	VERBOSE("arraySize is %llu\n",arraySize);
+	VERBOSE("step is %d\n",step);
+	VERBOSE("accessesPerLoop are %d\n",accessesPerLoop);
+	VERBOSE("Loops are %d\n",loops);
+	VERBOSE("Expected Mem access:%llu\n",memAccesses);
 
 	calculate_mem_frequency(loops);
 }

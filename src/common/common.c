@@ -9,6 +9,8 @@
 #include "include/perf.h"
 #include <fcntl.h>
 
+int verbose = 0;
+
 u64 start_time, end_time, finish_time = 0;
 
 struct itimerval timeout_timer;
