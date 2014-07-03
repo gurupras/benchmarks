@@ -84,6 +84,7 @@ static int parse_opts(int argc, char **argv) {
 			cpu_manual_load = atof(optarg);
 			if(cpu_manual_load > 1.0 || cpu_manual_load < 0.0)
 				usage("0.0 <= load <= 1.0\n");
+			break;
 		case 'v' :
 			verbose = 1;
 			break;
@@ -100,7 +101,7 @@ static int parse_opts(int argc, char **argv) {
 			printf("Warning: Ignoring budget as tuning is disabled\n");
 		if(manual_annotations)
 			printf("Warning: Ignoring annotations as tuning is disabled\n");
-		if(short_run || manual_annotations) {
+		if(short_run && manual_annotations) {
 			usage("Options require -u flag\n");
 		}
 	}
