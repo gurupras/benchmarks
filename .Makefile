@@ -32,11 +32,11 @@ arm     : CFLAGS+= -D ARM
 
 host arm : common.o perf.o cpu.o mem.o io.o micro_benchmark.o annotation_test.o main.o
 	cd $(TUNING_LIB_PATH) && CROSS=$(CROSS) make && cd -
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
-
+	@$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
+	@echo "  CC    -g -o $(PROG_NAME) $^ $(LIBS)"
 %.o : %.c
-	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c $< -o $@
-
+	@$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -c $< -o $@
+	@echo "  CC    $< -o $@"
 
 clean :
 	rm -rf *.o *.so *.a $(PROG_NAME)
