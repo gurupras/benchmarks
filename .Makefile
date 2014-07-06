@@ -6,9 +6,9 @@ MAKEFLAGS = --no-builtin-rules
 # We don't use any suffix rules
 .SUFFIXES :
 
-LIBS     = -lrt -lpatuning
+LIBS     = -lpatuning -lrt -lpthread
 
-MODULES=common cpu mem io microbench
+MODULES=common cpu mem io microbench annotation_test
 SOURCE_DIRS=$(addprefix src/, $(MODULES))
 BUILD_DIR=build/
 INCLUDE=src/include
@@ -30,7 +30,7 @@ host    : CROSS=
 arm lib : CROSS=arm-none-linux-gnueabi-
 arm     : CFLAGS+= -D ARM
 
-host arm : common.o perf.o cpu.o mem.o io.o micro_benchmark.o main.o
+host arm : common.o perf.o cpu.o mem.o io.o micro_benchmark.o annotation_test.o main.o
 	cd $(TUNING_LIB_PATH) && CROSS=$(CROSS) make && cd -
 	$(addprefix $(CROSS), $(CC)) $(CC_OPTS) -g -o $(PROG_NAME) $^ $(LIBS)
 

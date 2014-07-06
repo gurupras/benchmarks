@@ -58,7 +58,7 @@ struct benchmark {
 	void (*operation_run) (int operations);
 };
 
-extern struct benchmark cpu, mem, io, micro_benchmark;
+extern struct benchmark cpu, mem, io, micro_benchmark, annotation_test_benchmark;
 
 
 inline void panic();

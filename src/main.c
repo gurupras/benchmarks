@@ -62,6 +62,9 @@ int main(int argc, char **argv) {
 	else if(strcmp(argv[1], "micro") == 0) {
 		micro_benchmark.run(argc, argv);
 	}
+	else if(strcmp(argv[1], "manual") == 0) {
+		annotation_test_benchmark.run(argc, argv);
+	}
 	else if(strcmp(argv[1], "-h") == 0) {
 		usage();
 	}
