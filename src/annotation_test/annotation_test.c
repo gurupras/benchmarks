@@ -14,7 +14,8 @@ static int budget;
 static int multiplier;
 
 static int manual_annotations;
-double cpu_load;
+static double cpu_load, mem_load;
+static u64 duration, operations;
 
 
 static void usage(char *error) {
@@ -110,20 +111,24 @@ static int parse_opts(int argc, char **argv) {
 
 static int annotation_test(int argc, char **argv) {
 	struct component_settings settings;
-	double mem_load;
-	u64 operations = 0;
-	u64 duration = (10 * 1000000ULL) * multiplier;
-	operations = ((1 - cpu_load) * duration) / MEM_OPERATION_DURATION;
+
 	mem.init();
-	mem_load = 1 - cpu_load;
 
 	parse_opts(argc, argv);
+	//TODO: Figure out why tuning library calls corrupts our stack
+	//If the variable declarations were placed above the calls to the 
+	//tuning library, the variables are all initialized to 0.
 	if(!is_tuning_disabled) {
 		tuning_library_init();
 		tuning_library_set_budget(budget);
 		if(!manual_annotations)
 			tuning_library_start();
 	}
+
+	duration = GOVERNOR_POLL_INTERVAL * multiplier;
+//	u64 duration = (10 * 1000000ULL) * multiplier;
+	operations = ((1 - cpu_load) * duration) / MEM_OPERATION_DURATION;
+	mem_load = 1 - cpu_load;
 
 	VERBOSE("Starting annotation test\n");
 	VERBOSE("Duration :%llu\n", duration);
