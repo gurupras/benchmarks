@@ -231,7 +231,7 @@ static void timed_bench_cpu(u64 time) {
 	signal(SIGALRM, alarm_handler);
 
 	start_time = rdclock();
-	setitimer(ITIMER_REAL, &timeout_timer, 0);
+	setitimer(ITIMER_PROF, &timeout_timer, 0);
 
 	while(!is_finished) {
 		is_prime(current_number);

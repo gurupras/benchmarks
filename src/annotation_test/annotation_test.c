@@ -111,7 +111,7 @@ static int parse_opts(int argc, char **argv) {
 
 static int annotation_test(int argc, char **argv) {
 	struct component_settings settings;
-
+	int i;
 	mem.init();
 
 	parse_opts(argc, argv);
@@ -125,7 +125,7 @@ static int annotation_test(int argc, char **argv) {
 			tuning_library_start();
 	}
 
-	duration = GOVERNOR_POLL_INTERVAL * multiplier;
+	duration = GOVERNOR_POLL_INTERVAL * 10;	//100ms
 //	u64 duration = (10 * 1000000ULL) * multiplier;
 	operations = ((1 - cpu_load) * duration) / MEM_OPERATION_DURATION;
 	mem_load = 1 - cpu_load;
@@ -136,26 +136,25 @@ static int annotation_test(int argc, char **argv) {
 	VERBOSE("MEM load :%.4f\n", mem_load);
 	VERBOSE("operations :%llu\n", operations);
 
-	if(!is_tuning_disabled && manual_annotations) {
-		settings.inefficiency[CPU] = CPU_MAX_INEFFICIENCY *
-			cpu_load;
-		settings.inefficiency[MEM] = MEM_MAX_INEFFICIENCY *
-			mem_load;
-		settings.inefficiency[NET] = 1000;
-		tuning_library_force_annotation(settings);
-	}
-	mem.operation_run(operations);
+	for(i = 0; i < multiplier; i++) {
+		if(!is_tuning_disabled && manual_annotations) {
+			settings.inefficiency[CPU] = CPU_MAX_INEFFICIENCY * 0.3;
+			settings.inefficiency[MEM] = MEM_MAX_INEFFICIENCY * 1;
+			settings.inefficiency[NET] = 1000;
+			tuning_library_force_annotation(settings);
+		}
+		mem.operation_run(operations);
 
-	if(!is_tuning_disabled && manual_annotations) {
-		settings.inefficiency[CPU] = CPU_MAX_INEFFICIENCY *
-			1;
-		settings.inefficiency[MEM] = MEM_MAX_INEFFICIENCY *
-			0;
-		settings.inefficiency[NET] = 1000;
-		tuning_library_force_annotation(settings);
+		if(!is_tuning_disabled && manual_annotations) {
+			settings.inefficiency[CPU] = CPU_MAX_INEFFICIENCY *
+				1;
+			settings.inefficiency[MEM] = MEM_MAX_INEFFICIENCY *
+				0;
+			settings.inefficiency[NET] = 1000;
+			tuning_library_force_annotation(settings);
+		}
+		cpu.timed_run((duration));
 	}
-	cpu.timed_run((cpu_load * duration));
-
 	return 0;
 }
 
