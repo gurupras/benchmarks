@@ -9,7 +9,7 @@
 #include "include/perf.h"
 #include "tuning_library.h"
 
-u64 end_number = ~0, current_number = 0, finish_number = -1;
+static u64 end_number = ~0, current_number = 0, finish_number = -1;
 static int budget;
 static volatile int is_finished = 0;
 static struct timespec sleep_interval = {0,0};
@@ -220,15 +220,19 @@ static void timed_bench_cpu(u64 time) {
 		return;
 	is_finished = 0;
 	current_number = 3;
+	VERBOSE("CPU benchmark end time :%lluns\n", time);
 	end_time = time;
-	time_t sec 	= end_time / SEC_TO_NSEC;
-	time_t usec = ( (end_time - (sec * SEC_TO_NSEC)) / USEC_TO_NSEC);
+	time_t sec = 0, usec = 0;
+	sec = (end_time / SEC_TO_NSEC);
+	usec = ( (end_time - (sec * SEC_TO_NSEC)) / USEC_TO_NSEC);
 	timeout_timer.it_interval.tv_usec = 0;
 	timeout_timer.it_interval.tv_sec  = 0;
 	timeout_timer.it_value.tv_sec     = sec;
 	timeout_timer.it_value.tv_usec    = usec;
 
 	signal(SIGALRM, alarm_handler);
+	signal(SIGPROF, alarm_handler);
+	signal(SIGVTALRM, alarm_handler);
 
 	start_time = rdclock();
 	setitimer(ITIMER_PROF, &timeout_timer, 0);

@@ -17,6 +17,7 @@ static int manual_annotations;
 static double cpu_load, mem_load;
 static u64 duration, operations;
 
+static inline int __bench_cpu(u32 limit);
 
 static void usage(char *error) {
 	struct _IO_FILE *file = stdout;
@@ -45,8 +46,9 @@ static void usage(char *error) {
 static int parse_opts(int argc, char **argv) {
 	int opt;
 	int cpu_load_flag = 0;
+	char *ptr;
 
-	while( (opt = getopt(argc, argv, "n:b:c:mhuqv")) != -1) {
+	while( (opt = getopt(argc, argv, "n:b:c:o:mhuqv")) != -1) {
 		switch(opt) {
 		case ':' :
 			usage("missing parameter value");
@@ -76,6 +78,9 @@ static int parse_opts(int argc, char **argv) {
 			if(cpu_load > 1.0 || cpu_load < 0.0)
 				usage("0.0 <= load <= 1.0\n");
 			break;
+		case 'o' :
+			operations = strtoull(optarg, &ptr, 0);
+			break;
 		case 'v' :
 			verbose = 1;
 			break;
@@ -98,9 +103,9 @@ static int parse_opts(int argc, char **argv) {
 			usage("Must specify -b with -u\n");
 	}
 
-	if(!cpu_load_flag) {
-		usage("Must specify -c\n");
-	}
+//	if(!cpu_load_flag) {
+//		usage("Must specify -c\n");
+//	}
 
 	printf("\n");
 
@@ -127,7 +132,6 @@ static int annotation_test(int argc, char **argv) {
 
 	duration = GOVERNOR_POLL_INTERVAL * 10;	//100ms
 //	u64 duration = (10 * 1000000ULL) * multiplier;
-	operations = ((1 - cpu_load) * duration) / MEM_OPERATION_DURATION;
 	mem_load = 1 - cpu_load;
 
 	VERBOSE("Starting annotation test\n");
@@ -153,8 +157,19 @@ static int annotation_test(int argc, char **argv) {
 			settings.inefficiency[NET] = 1000;
 			tuning_library_force_annotation(settings);
 		}
-		cpu.timed_run((duration));
-	}
+		start_time = rdclock();
+		__bench_cpu((u32) 1e7);
+		end_time = rdclock();
+		VERBOSE("Time taken :%4.4fs\n", ((end_time - start_time) / 1e9));
+}
+	return 0;
+}
+
+
+static inline int __bench_cpu(u32 limit) {
+	u32 current_number = 0;
+	while(current_number < limit)
+		current_number++;
 	return 0;
 }
 
